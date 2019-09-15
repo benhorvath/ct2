@@ -1,0 +1,49 @@
+---
+title: "DATA 621---Assignment no. 1"
+author: "Critical Thinking Group 2: All of our names, Ben H."
+date: "September XX, 2019"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+        collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+```
+
+Introduction
+
+Load libraries:
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+Load data:
+
+```{r}
+train <- read.csv('moneyball-training-data.csv', stringsAsFactors=FALSE)
+colnames(train) <- tolower(colnames(train))
+
+head(train)
+```
+
+
+
+# Section 1
+
+Content
+
+## Subsection
+
+Lorem ipsum
+
+
+
+# Section 2
+
+Lorem ipsum

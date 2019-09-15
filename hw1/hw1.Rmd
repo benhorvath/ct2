@@ -3,10 +3,8 @@ title: "DATA 621---Assignment no. 1"
 author: "Critical Thinking Group 2: All of our names, Ben H."
 date: "September XX, 2019"
 output:
-  html_document:
+  pdf_document:
     toc: yes
-    toc_float:
-        collapsed: false
 ---
 
 ```{r setup, include=FALSE}

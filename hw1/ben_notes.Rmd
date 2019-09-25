@@ -1,0 +1,196 @@
+---
+title: "DATA 621---Assignment no. 1"
+author: "Critical Thinking Group 2: All of our names, Ben H."
+date: "September XX, 2019"
+output:
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+```
+
+Just some preliminary notes on this data set:
+
+Load libraries:
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+Load data:
+
+```{r}
+train <- read.csv('moneyball-training-data.csv', stringsAsFactors=FALSE)
+colnames(train) <- tolower(colnames(train))
+
+ggplot(train, aes(x=team_batting_h, y=target_wins)) + 
+  geom_point() +
+  geom_smooth(size=1, method='lm') +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), colour='red', size=0.5)
+
+```
+
+* Target variable `target_wins` is normal, so that's good
+
+* The following independent variables are noticeably skewed:
+
+    * `team_batting_3b`
+    * `team_batting_bb`
+    * `team_baserun_sb`, with long right tail
+    * `team_baserun_cs`
+    * `team_pitching_bb` is very skewed, consider transformation
+    * `team_pitching_h`, very skewed
+    * `team_pitching_e`, very skewed
+    
+These variables almost appear as combinations of two distributions. If we could potentailly uncover the source of this divergence from the other variables---or maybe even use interaction variables---we could substantially improve modeling:
+
+* `team_batting_hr`
+* `team_batting_so`
+* `team_pitching_hr`
+
+Many of the variables are clearly related to the target variable. Some are clearly linear, others have clear non-linear relationships that should be accounted for in the model:
+
+* All of the `team_batting_XX` variables
+* `team_batting_hbp`
+* `team_pitching_hr`
+*  Maybe `team_fielding_e`
+
+These will have to be accounted for like `lm(y ~ poly(x, 2))`.
+
+Outliers and missing values are definitely going to be an issue, so we'll need to come up with a strategy to understand why and deal with both of those.
+
+Importantly -- many of the independent variables are correlated with eachother, so we will have to be very careful about this or it will dramatically disturb our parameter estimates! (If we really wanted to, we could do PCA to make synthetic, non-correlated variables.)
+
+We will have to decide how we want to evaluate each model, independently and in predicting on the training data. My vote is Root Mean Squared Error (RMSE).
+
+
+```{r}
+COR_MAX <- 0.50
+
+train_na <- na.omit(train)
+ 
+C <- cor(train_na)
+C[upper.tri(C)] <- 0
+diag(C) <- 0
+ 
+train_uncorrelated <- train_na[, !apply(C, 2, function(x) any(x > COR_MAX))]
+head(train_uncorrelated)
+```
+
+
+
+### Data Imputation
+
+```{r}
+# Imputes a vector's missing values using random regression imputation
+# Returns imputed vector. If plot=TRUE will plot the imputed values.
+impute_vector <- function(x, df, lmod, seed=1, plot=FALSE) {
+  
+  # function to create a completed dataset by imputing the predictions
+  impute <- function(a, a.impute) {
+    ifelse(is.na(a), a.impute, a)
+  }
+  
+  set.seed(seed)
+  n <- length(x)
+  m_imp_y_hat <- predict(lmod, df)
+  randomness <- rnorm(n, m_imp_y_hat, sigma.hat(lmod))
+  imputed_x <- impute(x, as.integer(randomness))
+  
+  if (plot == TRUE) {
+    y_lim <- as.numeric(c(0, quantile(imputed_x, .995)))
+    x_lim <- c(0, 500)
+    plot(range(impute(x, m_imp_y_hat)[is.na(x)]), ylim=y_lim, xlim=x_lim,
+         xlab="Regression prediction", ylab="Imputed x",
+         main="Random imputation")
+    points(impute(x, m_imp_y_hat)[is.na(x)], impute(x, randomness)[is.na(x)], 
+            cex=1.1, pch=19)
+    points(m_imp_y_hat, x, col="darkgray")
+  }
+  
+  return(imputed_x)
+  
+}
+
+
+
+train_imp <- train
+
+sort(sapply(train, FUN=function(x) mean(is.na(x))), decreasing=TRUE)
+
+PLOT <- TRUE
+SEED <- 1804
+m_imp1 <- lm(team_pitching_so ~ team_batting_h + team_batting_2b + team_batting_3b + 
+              team_batting_hr, train)
+train_imp$team_pitching_so <- impute_vector(train$team_pitching_so, train, m_imp1, plot=PLOT, seed=SEED)
+
+m_imp2 <- lm(team_batting_so ~ team_pitching_so + team_batting_h + team_batting_2b + team_batting_3b + 
+              team_batting_hr, train_imp)
+train_imp$team_batting_so <- impute_vector(train$team_batting_so, train_imp, m_imp2, plot=PLOT, seed=SEED)
+
+# team_baserun_sb -- two distribution, train$team_pitching_hr < 75 and train$team_pitching_hr >= 75
+m_imp_3_l75 <- m_imp3 <- lm(team_baserun_sb ~ team_batting_so + team_pitching_so + team_batting_h +
+                              team_batting_2b + team_batting_3b + team_batting_hr,
+                            train_imp, na.action = na.omit, subset=team_pitching_hr < 75)
+train_imp$team_baserun_sb[train$team_pitching_hr < 75] <- impute_vector(train$team_baserun_sb[train$team_pitching_hr < 75],
+              train_imp[train$team_pitching_hr < 75,], 
+              m_imp_3_l75, plot=PLOT, seed=SEED)
+
+m_imp_3_g75 <- m_imp3 <- lm(team_baserun_sb ~ team_batting_so + team_pitching_so + team_batting_h +
+                              team_batting_2b + team_batting_3b + team_batting_hr,
+                            train_imp, na.action = na.omit, subset=team_pitching_hr >= 75)
+train_imp$team_baserun_sb[train$team_pitching_hr >= 75] <- impute_vector(train$team_baserun_sb[train$team_pitching_hr >= 75],
+              train_imp[train$team_pitching_hr >= 75,],
+              m_imp_3_g75,
+              plot=PLOT, seed=SEED)
+
+
+
+# Problematic imputation
+m_imp3 <- lm(team_baserun_sb ~ team_batting_so + team_pitching_so + team_batting_h + team_batting_2b +
+               team_batting_3b + team_batting_hr, train_imp, na.action = na.omit)
+train_imp$team_baserun_sb <- impute_vector(train$team_baserun_sb, train_imp, m_imp3, plot=PLOT, seed=SEED)
+
+# team_fielding_dp
+m_imp4 <- lm(team_fielding_dp ~ team_baserun_sb + team_batting_so + team_pitching_so + team_batting_h +
+               team_batting_2b + team_batting_3b + team_batting_hr, train_imp)
+train_imp$team_fielding_dp <- impute_vector(train$team_fielding_dp, train_imp, m_imp4, plot=PLOT, seed=SEED)
+
+# team_baserun_cs
+m_imp5 <- lm(team_baserun_cs ~ team_fielding_dp + team_baserun_sb + team_batting_so + team_pitching_so +
+               team_batting_h + team_batting_2b + team_batting_3b + team_batting_hr, train_imp)
+train_imp$team_baserun_cs <- impute_vector(train$team_baserun_cs, train_imp, m_imp5, plot=PLOT, seed=SEED)
+
+
+x <- lm(target_wins ~ team_baserun_cs + team_batting_h +
+          team_batting_2b + team_batting_3b + team_batting_hr + team_batting_bb +
+          team_batting_so + team_baserun_sb + team_pitching_h + team_pitching_hr +
+          team_pitching_bb + team_pitching_so + team_fielding_e + team_fielding_dp,
+        train[complete.cases(train),])
+
+xx <- lm(target_wins ~ team_baserun_cs + team_batting_h +
+          team_batting_2b + team_batting_3b + team_batting_hr + team_batting_bb +
+          team_batting_so + team_baserun_sb + team_pitching_h + team_pitching_hr +
+          team_pitching_bb + team_pitching_so + team_fielding_e + team_fielding_dp,
+        train_imp)
+
+test <- read.csv('moneyball-evaluation-data.csv')
+colnames(test) <- tolower(colnames(test))
+
+test$pred_x <- predict(x, test)
+test$pred_xx <- predict(xx, test)
+
+```
+
+
+```{r}
+# Problematic imputation
+m_imp_l <- lm(log(team_baserun_sb) ~ team_batting_so + team_pitching_so + team_batting_h + team_batting_2b +
+               team_batting_3b + team_batting_hr, train_imp[complete.cases(train_imp),])
+impute_vector(log(train$team_baserun_sb), train_imp, m_imp_l, plot=PLOT, seed=SEED)
+```
+

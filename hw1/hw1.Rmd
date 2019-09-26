@@ -1,43 +1,30 @@
 ---
 title: "DATA 621---Assignment no. 1"
-author: "Critical Thinking Group 2: All of our names, Ben H."
-date: "September XX, 2019"
+author: "Critical Thinking Group 2"
+date: "September 25, 2019"
 output:
   pdf_document:
     toc: yes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
-```
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
 
-Introduction
-
-Load libraries:
-
-```{r}
 library(corrplot)
 library(dplyr)
 library(ggplot2)
-library(knitr)
-
-library(kableExtra)
-# library(psych)
-library(reshape2)
 library(gridExtra)
-#library(psychometric)
-#library(ggpubr)
-#library(matlib)
-#library(matrixcalc)
-# library(psych)
-# library(MASS)
-# library(forecast)
+library(kableExtra)
+library(knitr)
+library(reshape2)
 ```
+
 
 # Executive Overview
 
-We present three multiple regression models to predict a professional baseball teams' performance.
+We present three multiple regression models to predict a professional baseball teams' performance. We find that our best model is able to predict about 33 percent of the variation in yearly wins.
 
+However, caution is warranted as we were able to pinpoint weaknesses in each model (violations of least squares assumptions) that suggests the estimates may need further work.
 
 # Data Exploration
 
@@ -50,7 +37,7 @@ The explanatory columns are broken down into four categories:
 * Pitching
 * Fielding
 
-Below you will see a preview of the columns and the first few observations broken down into these four categories.
+A preview of the columns and the first few observations broken down into these four categories.
 
 ```{r echo=FALSE}
 data <- read.csv(file="moneyball-training-data.csv", header=TRUE, sep=",")
@@ -65,11 +52,11 @@ The variable `TARGET_WINS` is the number of wins of a professional baseball team
 This is the dependent variable that our models will attempt to predict. It is characterized by:
 
 ```{r echo=FALSE}
-kable(summary(data[c(2)]))
+summary(data[c(2)])
 ```
 
 ```{r echo=FALSE}
-kable(psych::describe(data[c(1:2)], skew=FALSE)[2,c(2,4,8)])
+psych::describe(data[c(1:2)], skew=FALSE)[2,c(2,4,8)]
 ```
 
  the distribution of the number of wins is unimodal and skewed to the left with some outliers towards the tail. It looks approximately normal, though the boxplot shows there are quite a few outliers. The minimum number of wins for a team is 0 and the maximum is 146. The mean is 80.79. 
@@ -90,17 +77,15 @@ boxplot(data[c(2)])
 
 Below are our batting variables and their hypothesized effect on `TARGET_WINS`:
 
-DESCRIPTION AND THEORETICAL EFFECT
-
 | VARIABLE NAME    | DEFINITION                              | THEORETICAL EFFECT             |
 |------------------|-----------------------------------------|--------------------------------|
-| TEAM_BATTING_H   | Base Hits by batters (1B,2B,3B,HR)      | Positive Impact on Wins        |
-| TEAM_BATTING_2B  | Doubles by batters (2B)                 | Positive Impact on Wins        |
-| TEAM_BATTING_3B  | Triples by batters (3B)                 | Positive Impact on Wins        |
-| TEAM_BATTING_HR  | Homeruns by batters (4B)                | Positive Impact on Wins        |
-| TEAM_BATTING_BB  | Walks by batters                        | Positive Impact on Wins        |
-| TEAM_BATTING_HBP |  Batters hit by pitch (get a free base) | Positive Impact on Wins        |
-| TEAM_BATTING_SO  | Strikeouts by batters                   | Negative Impact on Wins        |
+| BATTING_H   | Base Hits by batters (1B,2B,3B,HR)      | Positive Impact on Wins        |
+| BATTING_2B  | Doubles by batters (2B)                 | Positive Impact on Wins        |
+| BATTING_3B  | Triples by batters (3B)                 | Positive Impact on Wins        |
+| BATTING_HR  | Homeruns by batters (4B)                | Positive Impact on Wins        |
+| BATTING_BB  | Walks by batters                        | Positive Impact on Wins        |
+| BATTING_HBP |  Batters hit by pitch (get a free base) | Positive Impact on Wins        |
+| BATTING_SO  | Strikeouts by batters                   | Negative Impact on Wins        |
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, fig.width=8.5}
 par(mfrow=c(1,3))
@@ -119,22 +104,22 @@ Since all of these variables relate to the same thing, batting, we expect at lea
 
 ```{r echo=FALSE}
 cor <- as.data.frame(cor(data[c(2:8,11)], method = "pearson", use = "complete.obs"))
-knitr::kable(cor, format='markdown')
+cor
 ```
 
 ### Baserun Variables
 
 Description and theoretical effects:
 
-| VARIABLE NAME   | DEFINITION      | THEORETICAL EFFECT           |
+| Variable Name   | Definition      | Theoretical Effect          |
 |-----------------|-----------------|------------------------------|
 |TEAM_BASERUN_SB  |Stolen bases     |Positive Impact on Wins       |
-|TEAM_BASERUN_CS  |Caught stealing  |<b>Negative Impact on Wins</b>|
+|TEAM_BASERUN_CS  |Caught stealing  |Negative Impact on Wins|
 
 As you can see, both variables have some missing values:
 
 ```{r echo=FALSE}
-kable(summary(data[c(9:10)]), format='markdown')
+summary(data[c(9:10)])
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, fig.width=6}
@@ -145,18 +130,18 @@ boxplot(data[c(10)], main=colnames(data)[10])
 
 ```{r echo=FALSE}
 cor <- cor(data[c(2, 9:10)], method = "pearson", use = "complete.obs") 
-kable(cor, format='markdown')
+cor
 ```
 
 ### Pitching Variables
 
 Description:
 
-| VARIABLE NAME   | DEFINITION             | THEORETICAL EFFECT            |
+| Variable Name   | Definition            | Theoretical Effect           |
 |-----------------|------------------------|-------------------------------|
-|TEAM_PITCHING_BB | Walks allowed          |<b>Negative Impact on Wins</b> |
-|TEAM_PITCHING_H  | Hits allowed           |<b>Negative Impact on Wins</b> |
-|TEAM_PITCHING_HR | Homeruns allowed       |<b>Negative Impact on Wins</b> |
+|TEAM_PITCHING_BB | Walks allowed          |Negative Impact on Wins |
+|TEAM_PITCHING_H  | Hits allowed           |Negative Impact on Wins |
+|TEAM_PITCHING_HR | Homeruns allowed       |Negative Impact on Wins |
 |TEAM_PITCHING_SO | Strikeouts by pitchers | Positive Impact on Wins       |
 
 ```{r}
@@ -177,21 +162,21 @@ boxplot(data[c(15)], main=colnames(data)[15])
 ```
 
 ```{r}
-kable(cor(data[c(2, 12:15)]), format='markdown')
+cor(data[c(2, 12:15)])
 ```
 
 ### Fielding Variables
 
 Description:
 
-| VARIABLE NAME   | DEFINITION  | THEORETICAL EFFECT            |
+| Variable Name   | Definition            | Theoretical Effect           |
 |-----------------|-------------|-------------------------------|
-|TEAM_FIELDING_E  |Errors       | <b>Negative Impact on Wins</b>|
+|TEAM_FIELDING_E  |Errors       | Negative Impact on Wins|
 |TEAM_FIELDING_DP |Double Plays | Positive Impact on Wins       |
 
 
 ```{r}
-kable(summary(data[c(16:17)]), format='markdown')
+summary(data[c(16:17)])
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE, fig.width=6}
@@ -201,7 +186,7 @@ boxplot(data[c(17)], main=colnames(data)[17])
 ```
 
 ```{r}
-kable(cor(data[c(2, 16:17)]))
+cor(data[c(2, 16:17)])
 ```
 
 
@@ -215,14 +200,14 @@ sort(sapply(data, FUN=function(x) mean(is.na(x))), decreasing=TRUE)
 
 The `TEAM_BATTING_HBP` variable is almost entirely missing. We chose to omit it from the rest of the analysis.
 
-As for the other variables, we are simply dropping them, further analyzing only the complete cases.
+As for the other variables, we are simply dropping the missing cases. This causes us to lose about a third of our data set. Future work should attempt to recover some of the missing data. (We avoided imputing the mean or median because it shrinks the standard deviation and jeopardizes the validity of model estimates.)
 
 ```{r}
 data$TEAM_BATTING_HBP <- NULL
 data2 <- data[complete.cases(data), ]
 ```
 
-Some variables can be transformed to appromximately normal distribution by logging them. We will test this below:
+Additionally, some variables can be transformed to appromximately normal distribution by logging them. We will test this below.
 
 ```{r}
 train <- data
@@ -233,6 +218,7 @@ train.trans$TEAM_PITCHING_HR = apply(train.trans['TEAM_PITCHING_HR'], 1, functio
 train.trans$TEAM_PITCHING_BB = apply(train.trans['TEAM_PITCHING_BB'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
 train.trans$TEAM_FIELDING_E = apply(train.trans['TEAM_FIELDING_E'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
 ```
+
 
 
 
@@ -247,7 +233,7 @@ train.trans = train.trans%>%dplyr::select(-TEAM_BATTING_2B, -TEAM_BATTING_3B, -T
 
 ## Model 1
 
-The first model `model` regresses `target_wins` on the five variables identified above:
+The first model `model1` regresses `target_wins` on the five variables identified above:
 ```{r}
 model1 = lm(TARGET_WINS ~ TEAM_BATTING_H + TEAM_BATTING_BB + TEAM_PITCHING_HR +
                 TEAM_PITCHING_BB + TEAM_FIELDING_E, data=train.trans)
@@ -312,6 +298,38 @@ Adjusted $R^2$ and $MSE$ tick up slightly compared to previous models:
 
 ```{r}
 mean(resid(model3)^2)
+```
+
+
+## Bonus: Model 4
+
+Model 4 is a linear-linear regression model with no variable transformations.
+
+Because TEAM_BATTING_H includes TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, model 2 will not use TEAM_BATTING_H. Instead, it will use TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, and a calculated column for TEAM_BATTING_1B.
+
+Selected variables from model 2:
+
+* TEAM_BATTING_1B (calculated)
+* TEAM_BATTING_2B (removed from final version of model 2)
+* TEAM_BATTING_3B
+* TEAM_BATTING_HR _ TEAM_BATTING_BB
+* TEAM_FIELDING_E
+* TEAM_BASERUN_SB
+
+```{r}
+train$TEAM_BATTING_1B <- train$TEAM_BATTING_H - train$TEAM_BATTING_2B - train$TEAM_BATTING_3B - train$TEAM_BATTING_HR
+
+model4 <- lm(TARGET_WINS ~ TEAM_BATTING_1B + TEAM_BATTING_3B + TEAM_BATTING_HR + TEAM_BATTING_BB + 
+            TEAM_FIELDING_E +TEAM_BASERUN_SB , data=train)
+summary(model4)
+```
+
+All the variables are highly significant, except the intercept, which we know is not a problem for this modeling scenario.
+
+The Adjusted R-squared is 0.3261 (explains 32.61% of variability of response variable), which is larger than previous models. The $MSE$ is also substantially lower than the previous models:
+
+```{r}
+mean(resid(model4)^2)
 ```
 
 
@@ -385,7 +403,7 @@ Systematic bias in the model remains, although it appears to be on the other sid
 
 ## Model 3
 
-Finally, model three:
+Our third model:
 
 ```{r}
 par(mfrow=c(2,2))
@@ -397,26 +415,44 @@ Although this model had the best adjusted $R^2$ and $MSE$, it appears even more 
 The plots of each variable against the model residual suggests the same problems plague `model3` as the others: Unusual outlying points and lack of constant variance.
 
 
+## Model 4
+
+The errors for `model4` look similar to the others: Systematicly under-counting wins at higher levels, and problems with outliers and high leverage points.
+
+```{r}
+par(mfrow=c(2,2))
+plot(model4)
+```
+
+
 # Predictions
+
+Using our best model, `model4`, to predict the remaining cases. See `moneyball-evaluation-data.csv`, the column labeled `Y_HAT`.
 
 ```{r}
 df.test = read.table("moneyball-evaluation-data.csv", sep=',', header = TRUE, stringsAsFactors = FALSE)
-#2] SELECT Non Null columns
-df.test = df.test%>%dplyr::select(-INDEX)
-#cols.nomiss = names(train.df)[!names(train.df)%in%(cols.miss)]
-#df.test = df.test%>%dplyr::select(cols.nomiss)
-#3] Transform Data
-test.trans = df.test
-test.trans$TEAM_BATTING_H = test.trans$TEAM_BATTING_H  + test.trans$TEAM_BATTING_2B + test.trans$TEAM_BATTING_3B + test.trans$TEAM_BATTING_HR
-test.trans$TEAM_FIELDING_E = test.trans$TEAM_FIELDING_E + test.trans$TEAM_PITCHING_H
-test.trans = test.trans%>%dplyr::select(-TEAM_BATTING_2B, -TEAM_BATTING_3B, -TEAM_BATTING_HR, -TEAM_PITCHING_H)
-test.trans$TEAM_PITCHING_HR = apply(test.trans['TEAM_PITCHING_HR'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
-test.trans$TEAM_PITCHING_BB = apply(test.trans['TEAM_PITCHING_BB'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
-test.trans$TEAM_FIELDING_E = apply(test.trans['TEAM_FIELDING_E'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
-Target_Wins = predict(model3, newdata = test.trans)
-test.trans$TARGET_WINS = Target_Wins
-df.test1 = read.table("moneyball-evaluation-data.csv", sep=',', header = TRUE, stringsAsFactors = FALSE)
-df.test1$TARGET_WINS = Target_Wins
-write.csv(df.test1, "Target_Prediction.csv", row.names = FALSE)
+
+df.test$TEAM_BATTING_1B <- df.test $TEAM_BATTING_H - df.test $TEAM_BATTING_2B - df.test $TEAM_BATTING_3B - df.test $TEAM_BATTING_HR
+
+df.test$Y_HAT <- predict(model4, df.test)
+write.csv(df.test, "Target_Prediction.csv", row.names = FALSE)
+
+# #2] SELECT Non Null columns
+# df.test = df.test%>%dplyr::select(-INDEX)
+# #cols.nomiss = names(train.df)[!names(train.df)%in%(cols.miss)]
+# #df.test = df.test%>%dplyr::select(cols.nomiss)
+# #3] Transform Data
+# test.trans = df.test
+# test.trans$TEAM_BATTING_H = test.trans$TEAM_BATTING_H  + test.trans$TEAM_BATTING_2B + test.trans$TEAM_BATTING_3B + test.trans$TEAM_BATTING_HR
+# test.trans$TEAM_FIELDING_E = test.trans$TEAM_FIELDING_E + test.trans$TEAM_PITCHING_H
+# test.trans = test.trans%>%dplyr::select(-TEAM_BATTING_2B, -TEAM_BATTING_3B, -TEAM_BATTING_HR, -TEAM_PITCHING_H)
+# test.trans$TEAM_PITCHING_HR = apply(test.trans['TEAM_PITCHING_HR'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
+# test.trans$TEAM_PITCHING_BB = apply(test.trans['TEAM_PITCHING_BB'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
+# test.trans$TEAM_FIELDING_E = apply(test.trans['TEAM_FIELDING_E'], 1, function(x) if(x==0){return(0)} else{return(log(x))})
+# Target_Wins = predict(model3, newdata = test.trans)
+# test.trans$TARGET_WINS = Target_Wins
+# df.test1 = read.table("moneyball-evaluation-data.csv", sep=',', header = TRUE, stringsAsFactors = FALSE)
+# df.test1$TARGET_WINS = Target_Wins
+# write.csv(df.test1, "Target_Prediction.csv", row.names = FALSE)
 ```
 

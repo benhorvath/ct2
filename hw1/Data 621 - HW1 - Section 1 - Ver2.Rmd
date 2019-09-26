@@ -1041,8 +1041,8 @@ The residual median of model 2 is -0.003 (which is closer to zero than model 1 a
 The Adjusted R-squared is 0.3261 (explains 32.61% of variability of response variable), which is larger than model 1 at 0.3255. 
 
 ```{r}
-model2 <- lm(data$TARGET_WINS ~ data$TEAM_BATTING_1B + data$TEAM_BATTING_3B + data$TEAM_BATTING_HR + TEAM_BATTING_BB + 
-             TEAM_FIELDING_E +TEAM_BASERUN_SB , data=data)
+model2 <- lm(data$TARGET_WINS ~ data$TEAM_BATTING_1B + data$TEAM_BATTING_3B + data$TEAM_BATTING_HR + data$TEAM_BATTING_BB + 
+             data$TEAM_FIELDING_E + data$TEAM_BASERUN_SB , data=data)
 summary(model2)
 ```
 
@@ -1068,6 +1068,11 @@ The standardized residual plot of model 2 has a very similar shape and pattern t
 model2.predict <- predict(model2)
 model2.stdres <- rstandard(model2)
 ```
+
+```{r}
+mse(y_pred = model2.predict, y_true=data$TARGET_WINS)
+```
+
 
 ```{r}
 plot(model2.predict, model2.stdres, ylab="Standardized Residuals", xlab="Predicted Target Wins",  main="Model 2") 
@@ -1182,12 +1187,19 @@ Read data to be predicted.
 eval_data <- read.csv(file="moneyball-evaluation-data.csv", header=TRUE, sep=",")
 ```
 
-Predict data base on model 3 and write to CSV file. 
+Calculated TEAM_BATTING_1B in evaluation data. 
+
+```{r}
+eval_data$TEAM_BATTING_1B <- eval_data$TEAM_BATTING_H - eval_data$TEAM_BATTING_2B - eval_data$TEAM_BATTING_3B - eval_data$TEAM_BATTING_HR
+```
+
+
+Predict target_wins based on model 2 and write to CSV file. 
 
 
 ```{r warning=FALSE}
-predicted_targetWins <- predict(model3, newdata=eval_data)
-write.csv(predicted_targetWins, file = "Model3-Predcited_TargetWins.csv")
+predicted_targetWins <- predict(model2, newdata=data.frame(eval_data))
+write.csv(predicted_targetWins, file = "Model2-Predcited_TargetWins.csv")
 ```
 
 

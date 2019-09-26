@@ -1,0 +1,1208 @@
+---
+title: "Data 621 Homework 1"
+author: "Group 2"
+date: "September 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(psych)
+library(DT)
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+library(ggcorrplot)
+library(regclass)
+```
+
+---
+
+## Group Members
+
+This is a public page. I'm not sure if people want their names listed here. 
+```{r echo=FALSE}
+#- Yohannes Deboch
+#- Benjamin Horvath
+#- Santosh Manjrekar
+#- Samriti Malhotra 
+#- Sherranette Tinapunan
+```
+
+---
+
+## Overview
+
+In this homework assignment, you will explore, analyze and model a data set containing approximately 2200 records. Each record represents a professional baseball team from the years <b>1871 to 2006</b> inclusive. Each record has the performance of the team for the given year, with all of the statistics <b>adjusted to match the performance of a 162 game season</b>.
+
+Your objective is to build a multiple linear regression model on the training data to predict the number of wins
+for the team.
+
+---
+
+## Training Data Set
+
+
+The training data has <b>17</b> columns and <b>2,276 rows</b>. <br/>
+
+The explanatory columns are broken down into <b>four categories</b>: <br/>
+
+- Batting
+- Base run 
+- Pitching
+- Fielding
+
+Below you will see a preview of the columns and the first few observations broken down into these four categories. 
+
+<br/>
+
+```{r echo=FALSE}
+data <- read.csv(file="moneyball-training-data.csv", header=TRUE, sep=",")
+```
+
+---
+
+## Response Variable 
+
+### <span style="color:blue">TARGET_WINS</span>
+
+The variable <b>TARGET_WINS</b> is the <b>number of wins</b> of a professional baseball team for a given year. The year is not part of the data set.
+This is the <b>dependent</b> variable that our models will attempt to predict. 
+
+<br/> 
+                   
+```{r echo=FALSE}
+datatable(head(data[c(2)]), options=list(searching = FALSE, lengthChange = FALSE, info=FALSE, dom='t', autoWidth = TRUE), width=200)
+```
+Above is first few rows of dependent variable. 
+
+<br/> 
+
+#### DESCRIPTIVE STATISTCS 
+
+```{r echo=FALSE}
+datatable(data.frame(unclass(summary(data[c(2)])), check.names = FALSE, stringsAsFactors = TRUE), rownames=FALSE, width=200, options=list(dom='t'))
+```
+
+```{r echo=FALSE}
+datatable(psych::describe(data[c(1:2)], skew=FALSE)[2,c(2,4,8)], options = list(dom='t'), width=200) %>% formatRound(c("sd", "se"), 2)
+```
+
+<br/> 
+
+#### PLOTS 
+
+```{r echo=FALSE, fig.wdith=8.5}
+par(mfrow=c(1,1))
+p1 <- ggplot(data, aes(x=TARGET_WINS)) + geom_histogram(binwidth=5) + geom_vline(xintercept=mean(data$TARGET_WINS)) + theme(axis.title.x=element_blank()) 
+p2 <- ggplot(data, aes(x=TARGET_WINS)) + stat_density() + theme(axis.title.x=element_blank()) 
+grid.arrange(p1,p2, ncol=2, top="TARGET_WINS")
+boxplot(data[c(2)])
+```
+
+As you can see, the distribution of the number of wins is unimodal and skewed to the left with some outliers towards the tail. It looks approximately normal. The minimum number of wins for a team is 0 and the maximum is 146. The mean is 80.79. 
+
+The boxplot above shows that there are suspected outliers at both ends. 
+
+```{r echo=FALSE}
+summary(data$TARGET_WINS)
+```
+
+---
+
+<br/>
+
+## Explanatory Variables 
+
+### <span style="color:blue">1. BATTING VARIABLES (7)</span>
+
+<br /> 
+
+#### DESCRIPTION AND THEORETICAL EFFECT
+
+
+| VARIABLE NAME    | DEFINITION                              | THEORETICAL EFFECT             |
+|------------------|-----------------------------------------|--------------------------------|
+| TEAM_BATTING_H   | Base Hits by batters (1B,2B,3B,HR)      | Positive Impact on Wins        |
+| TEAM_BATTING_2B  | Doubles by batters (2B)                 | Positive Impact on Wins        |
+| TEAM_BATTING_3B  | Triples by batters (3B)                 | Positive Impact on Wins        |
+| TEAM_BATTING_HR  | Homeruns by batters (4B)                | Positive Impact on Wins        |
+| TEAM_BATTING_BB  | Walks by batters                        | Positive Impact on Wins        |
+| TEAM_BATTING_HBP |  Batters hit by pitch (get a free base) | Positive Impact on Wins        |
+| TEAM_BATTING_SO  | Strikeouts by batters                   | <b>Negative Impact on Wins</b> |
+
+<br/> 
+                   
+```{r echo=FALSE}
+datatable(head(data[c(3:8, 11)]), options = list(searching = FALSE, lengthChange = FALSE, info=FALSE, dom='t'))
+```
+Above is view of first few rows of batting variables. 
+
+<br/> 
+
+#### DESCRIPTIVE STATISTCS 
+
+As you can see, two variables have some N/A values (n < 2276). Particularly, <b>TEAM_BATTING_HPB only has 191 values that are not missing</b>. 
+
+```{r echo=FALSE}
+datatable(data.frame(unclass(summary(data[c(3:8, 11)])), check.names = FALSE, stringsAsFactors = TRUE), rownames=FALSE, options = list(searching = FALSE, lengthChange = FALSE, dom='t'))
+```
+
+```{r echo=FALSE}
+datatable(psych::describe(data[c(3:8, 11)], skew=FALSE)[c(2,4,8)], options = list(dom='t'), width=200) %>% formatRound(c("sd", "se"), 2)
+```
+
+<br />
+
+#### PLOTS
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=8.5}
+melt.data <- melt(data[c(3:8,11)])
+ggplot(data = melt.data, aes(x = value)) + stat_density() + facet_wrap(~variable, scales = "free")
+```
+
+<br />
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, fig.width=8.5}
+par(mfrow=c(1,3))
+boxplot(data[c(3)], main=colnames(data)[3])
+boxplot(data[c(4)], main=colnames(data)[4])
+boxplot(data[c(5)], main=colnames(data)[5])
+boxplot(data[c(6)], main=colnames(data)[6])
+boxplot(data[c(7)], main=colnames(data)[7])
+boxplot(data[c(8)], main=colnames(data)[8])
+boxplot(data[c(11)], main=colnames(data)[11])
+```
+
+#### CORRELATION OF BATTING VARIABLES
+
+See <i>Pairings of all Variables </i> to view correlation table and scatter plots of all variables. 
+
+```{r echo=FALSE}
+cor <- cor(data[c(2:8,11)], method = "pearson", use = "complete.obs") 
+datatable(cor, options=list(dom="t")) %>% formatRound(c(1:8), 2)
+```
+
+```{r echo=FALSE, fig.width=20, fig.height=20}
+#pdf("pairs_output.pdf")
+pairs(data[c(2:8,11)]) #Batting
+#dev.off()
+```
+
+
+<br/> 
+
+### <span style="color:blue">2. BASE RUN VARIABLES (2)</span>
+
+<br/> 
+
+#### DESCRIPTION AND THEORETICAL EFFECT
+
+| VARIABLE NAME   | DEFINITION      | THEORETICAL EFFECT           |
+|-----------------|-----------------|------------------------------|
+|TEAM_BASERUN_SB  |Stolen bases     |Positive Impact on Wins       |
+|TEAM_BASERUN_CS  |Caught stealing  |<b>Negative Impact on Wins</b>|
+
+<br/> 
+
+```{r echo=FALSE}
+datatable(head(data[c(9:10)]), options = list(searching = FALSE, lengthChange = FALSE, dom='t'),  width=200)
+```
+Above is view of first few rows of base run variables. 
+
+<br/> 
+
+#### DESCRIPTIVE STATISTCS 
+
+As you can see, both variables have some N/A values (n < 2276). 
+
+```{r echo=FALSE}
+datatable(data.frame(unclass(summary(data[c(9:10)])), check.names = FALSE, stringsAsFactors = TRUE), rownames=FALSE, options = list(searching = FALSE, lengthChange = FALSE, dom='t'), width=200)
+```
+
+```{r echo=FALSE}
+datatable(psych::describe(data[c(9:10)], skew=FALSE)[c(2,4,8)], options = list(dom='t'),  width=200) %>% formatRound(c("sd", "se"), 2)
+```
+
+<br/> 
+
+#### PLOTS
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=6}
+melt.data <- melt(data[c(9:10)])
+ggplot(data = melt.data, aes(x = value)) + stat_density() + facet_wrap(~variable, scales = "free")
+```
+
+<br /> 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, fig.width=6}
+par(mfrow=c(1,2))
+boxplot(data[c(9)], main=colnames(data)[9])
+boxplot(data[c(10)], main=colnames(data)[10])
+```
+
+
+#### CORRELATION OF BASE RUN VARIABLES
+
+See <i>Pairings of all Variables </i> to view correlation table and scatter plots of all variables. 
+
+```{r echo=FALSE}
+cor <- cor(data[c(2, 9:10)], method = "pearson", use = "complete.obs") 
+datatable(cor, options=list(dom="t")) %>% formatRound(c(1:8), 2)
+```
+
+```{r echo=FALSE, fig.width=5, fig.height=5}
+#pdf("pairs_output.pdf")
+pairs(data[c(2, 9:10)]) #Batting
+#dev.off()
+```
+
+### <span style="color:blue">3. PITCHING VARIABLES (4)</span>
+
+<br /> 
+
+#### DESCRIPTION AND THEORETICAL EFFECT
+
+| VARIABLE NAME   | DEFINITION             | THEORETICAL EFFECT            |
+|-----------------|------------------------|-------------------------------|
+|TEAM_PITCHING_BB | Walks allowed          |<b>Negative Impact on Wins</b> |
+|TEAM_PITCHING_H  | Hits allowed           |<b>Negative Impact on Wins</b> |
+|TEAM_PITCHING_HR | Homeruns allowed       |<b>Negative Impact on Wins</b> |
+|TEAM_PITCHING_SO | Strikeouts by pitchers | Positive Impact on Wins       |
+
+
+```{r echo=FALSE}
+datatable(head(data[c(12:15)]), options = list(searching = FALSE, lengthChange = FALSE, dom='t'), width=400)
+```
+Above is view of first few rows of pitching variables. 
+
+<br/> 
+
+#### DESCRIPTIVE STATISTCS 
+
+As you can see, one variable has some N/A values (n < 2276). 
+
+```{r echo=FALSE}
+datatable(data.frame(unclass(summary(data[c(12:15)])), check.names = FALSE, stringsAsFactors = TRUE), rownames=FALSE, options = list(searching = FALSE, lengthChange = FALSE, dom='t'), width=400)
+```
+
+```{r echo=FALSE}
+datatable(psych::describe(data[c(12:15)], skew=FALSE)[c(2,4,8)], options = list(dom='t'), width=400) %>% formatRound(c("sd", "se"), 2)
+```
+
+<br/>
+
+#### PLOTS 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.width=8}
+melt.data <- melt(data[c(12:15)])
+ggplot(data = melt.data, aes(x = value)) + stat_density() + facet_wrap(~variable, scales = "free")
+```
+
+<br /> 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, fig.width=6}
+par(mfrow=c(1,2))
+boxplot(data[c(12)], main=colnames(data)[12])
+boxplot(data[c(13)], main=colnames(data)[13])
+boxplot(data[c(14)], main=colnames(data)[14])
+boxplot(data[c(15)], main=colnames(data)[15])
+```
+
+#### CORRELATION OF PITCHING VARIABLES 
+
+See <i>Pairings of all Variables </i> to view correlation table and scatter plots of all variables. 
+
+```{r echo=FALSE}
+cor <- cor(data[c(2, 12:15)], method = "pearson", use = "complete.obs") 
+datatable(cor, options=list(dom="t")) %>% formatRound(c(1:8), 2)
+```
+
+```{r echo=FALSE, fig.width=7, fig.height=7}
+#pdf("pairs_output.pdf")
+pairs(data[c(2, 12:15)]) #Batting
+#dev.off()
+```
+
+### <span style="color:blue">4. FIELDING VARIABLES (2)</span>
+
+<br /> 
+
+#### DESCRIPTION AND THEORETICAL EFFECT
+
+| VARIABLE NAME   | DEFINITION  | THEORETICAL EFFECT            |
+|-----------------|-------------|-------------------------------|
+|TEAM_FIELDING_E  |Errors       | <b>Negative Impact on Wins</b>|
+|TEAM_FIELDING_DP |Double Plays | Positive Impact on Wins       |
+
+
+```{r echo=FALSE}
+datatable(head(data[c(16:17)]), options = list(searching = FALSE, lengthChange = FALSE, dom='t'), width=200)
+```
+Above is view of first few rows of fielding variables. 
+
+<br/> 
+
+#### DESCRIPTIVE STATISTCS 
+
+As you can see, one variable has some N/A values (n < 2276)
+
+```{r echo=FALSE}
+datatable(data.frame(unclass(summary(data[c(16:17)])), check.names = FALSE, stringsAsFactors = TRUE), rownames=FALSE, options = list(searching = FALSE, lengthChange = FALSE, dom='t'), width=200)
+```
+
+```{r echo=FALSE}
+datatable(psych::describe(data[c(16:17)], skew=FALSE)[c(2,4,8)], options = list(dom='t'), width=200) %>% formatRound(c("sd", "se"), 2)
+```
+
+<br /> 
+
+#### PLOTS 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+melt.data <- melt(data[c(16:17)])
+ggplot(data = melt.data, aes(x = value)) + stat_density() + facet_wrap(~variable, scales = "free")
+```
+
+<br /> 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, fig.width=6}
+par(mfrow=c(1,2))
+boxplot(data[c(16)], main=colnames(data)[16])
+boxplot(data[c(17)], main=colnames(data)[17])
+```
+
+#### CORRELATION OF FIELDING VARIABLES 
+
+See <i>Pairings of all Variables </i> to view correlation table and scatter plots of all variables. 
+
+```{r echo=FALSE}
+cor <- cor(data[c(2, 16:17)], method = "pearson", use = "complete.obs") 
+datatable(cor, options=list(dom="t"), width=200) %>% formatRound(c(1:8), 2)
+```
+
+```{r echo=FALSE, fig.width=5, fig.height=5}
+#pdf("pairs_output.pdf")
+pairs(data[c(2, 16:17)]) #Batting
+#dev.off()
+```
+
+---
+
+### Pairings of all Variables 
+
+#### CORRELATION OF ALL VARIABLES
+
+```{r echo=FALSE, fig.width=10, fig.height=10}
+cor <- cor(data[c(2:17)], method = "pearson", use = "complete.obs")
+ggcorrplot(cor)
+```
+
+
+```{r echo=FALSE}
+round(cor,2)
+```
+
+
+#### SCATTER PLOTS OF ALL VARIABLES 
+
+```{r echo=FALSE, fig.width=20, fig.height=20}
+#pdf("pairs_output.pdf")
+pairs(data[c(2:17)]) #Batting
+#dev.off()
+```
+
+
+---
+
+<br/>
+
+## MISSING DATA
+
+There are 6 explanatory variables with missing values. 
+
+Results of simple linear regression of these variables with missing data (listed below) suggest that predictors are not significant at the 5% level. 
+See section <i>Simple Linear Regression of each Variable</i> for more details. 
+<b>Recommendation is to drop these from the models.</b>
+
+
+- TEAM_BATTING_HBP - 2085 missing values (drop)
+- TEAM_BATTING_SO - 102 missing values (drop)
+- TEAM_BASERUN_CS - 772 missing (drop)
+- TEAM_FIELDING_DP - 286 missing (drop)
+
+
+Results of simple linear regression of variables (on TARGET_WINS) listed below suggest that predictors are significant.
+
+
+- TEAM_BASERUN_SB - 131 missing values (ignore observations with missing data)
+- TEAM_PITCHING_SO - 102 missing values (ignore observations with missing data)
+
+---
+
+<br /> 
+
+# Simple Linear Regressions of each Variable
+
+This section investigates more closely the relationship of each explanatory variable with the response variable TARGET_WINS. This would also give us some some insights with how to handle some of the variables with missing values. 
+
+
+## BATTING VARIABLES
+
+### TEAM_BATTING_H
+
+Base hits by batter (1B, 2B, 3B, HR).
+This variable is the sum of 1B, 2B, 3B, and HR. 
+
+No Missing values. 
+
+Positive relationship (expected theoretical effect is positive). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.042353 (contributes 0.04 points to TARGET_WINS with every unit increase). The p-value is < 2e-16 *** (predictor is significant). The R-squared is 0.1511 (explains about 15% of variability of response variable).
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BATTING_H, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_BATTING_H", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BATTING_H, data=data))
+```
+
+---
+
+### TEAM_BATTING_2B
+
+Doubles by batters (2B).
+
+No Missing values. 
+
+Positive relationship (expected theoretical effect is positive). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.097305 (points contributed to TARGET_WINS with every unit increase). The p-value is <2e-16 *** (predictor is significant). The R-squared is 0.08358 (explains about 8% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BATTING_2B, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) +
+  labs(x="TEAM_BATTING_2B", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BATTING_2B, data=data))
+```
+
+---
+
+### TEAM_BATTING_3B
+
+Tripples by batter (3B).
+
+No missing values. 
+
+Positive relationship (expected theoretical effect is positive). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.0804 (points contributed to TARGET_WINS with every unit increase). The p-value is 8.22e-12 *** (predictor is significant). The R-squared is  0.02034 (explains about 2% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BATTING_3B, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + labs(x="TEAM_BATTING_3B", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BATTING_3B, data=data))
+```
+
+---
+
+### TEAM_BATTING_HR
+
+Homeruns by batter (4B).
+
+No missing values. 
+
+Positive relationship (expected theoretical effect is positive). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.04583 (points contributed to TARGET_WINS with every unit increase). The p-value is <2e-16 *** (predictor is significant). The R-squared is 0.03103 (explains about 3% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BATTING_HR, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_BATTING_HR", y="TARGET_WINS", title="")
+```
+
+---
+
+### TEAM_BATTING_BB
+
+Walks by batter. 
+
+No missing values.
+
+Positive relationship (expected theoretical effect is positive). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.029863 (points contributed to TARGET_WINS with every unit increase). The p-value is <2e-16 *** (predictor is significant). The R-squared is 0.05408 (explains about 5% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BATTING_BB, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_BATTING_BB", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BATTING_BB, data=data))
+```
+
+---
+
+### TEAM_BATTING_SO (102 Missing)
+
+Strikeouts by batter.
+
+102 missing values. 
+
+Simple linear regression result below suggests that this variable is not significant. 
+
+The recommendation is to drop this variable from the model. 
+
+Negative relationship (expected theoretical effect is negative). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is -0.001990 (points contributed to TARGET_WINS with every unit increase). The p-value is 0.139 (predictor is not significant at 5% level). The R-squared is 0.001008 (explains less than 1% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BATTING_SO, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_BATTING_SO", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BATTING_SO, data=data))
+```
+
+
+---
+
+### TEAM_BATTING_HBP (2085 Missing)
+
+Batters hit by pitch. 
+
+2085 missing values. 
+
+Simple linear regression result suggests that this variable is not significant. 
+
+Recommendation is to drop this variable from the model. 
+
+Positive relationship (expected theoretical effect is positive). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is  0.06867 (points contributed to TARGET_WINS with every unit increase). The p-value is  0.312 (predictor is not significant at 5% level). The R-squared is 0.005403 (explains less than 1% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BATTING_HBP, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_BATTING_HBP", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BATTING_HBP, data=data))
+```
+
+---
+
+## PITCHING VARIABLES
+
+
+### TEAM_PITCHING_BB
+
+Walks allowed. 
+
+No missing values. 
+
+Positive relationship (expected theoretical impact <b>negative</b>). No obvious curved patterns observed from visually inspecting the scatter plots only. Noticeable outliers that may have strong influence on the linear regression line. Most points on the scatter plot are below 1000. A second scatter plot of points under 1000 continues to show a positive relationship. 
+
+All Points:
+Linear regression predictor coefficient is 0.01176 (points contributed to TARGET_WINS with every unit increase). The p-value is2.78e-09 *** (predictor is significant). The R-squared is 0.01542 (explains about 1.5% of variability of response variable).
+
+Under 1000:
+Linear regression predictor coefficient is 0.028531 (points contributed to TARGET_WINS with every unit increase). The p-value is <2e-16 *** (predictor is significant). The R-squared is 0.04401 (explains about 4.4% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_PITCHING_BB, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_PITCHING_BB", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_PITCHING_BB, data=data))
+```
+
+Points under 1000.
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data[data$TEAM_PITCHING_BB<1000,], aes(x=data$TEAM_PITCHING_BB[data$TEAM_PITCHING_BB<1000], y=data$TARGET_WINS[data$TEAM_PITCHING_BB<1000])) + geom_point() + geom_smooth(method=lm) + labs(x="TEAM_PITCHING_BB", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_PITCHING_BB, data=data[data$TEAM_PITCHING_BB<1000,]))
+```
+
+---
+
+### TEAM_PITCHING_H
+
+Hits allowed. 
+
+No missing values. 
+
+Negative relationship (expected theoretical effect is negative). No obvious curved patterns observed from visually inspecting the scatter plots only. Most points on the scatter plot are below 5000. A second scatter plot that only looks at points below 5000 suggest that the relationship is <b>positive</b>. 
+
+All points: 
+Linear regression predictor coefficient is -0.0012309 (points contributed to TARGET_WINS with every unit increase). The p-value is 1.46e-07 *** (predictor is significant). The R-squared is 0.01209 (explains about 1.2% of variability of response variable).
+
+Points under 5000:
+Linear regression predictor coefficient is 0.003825 (points contributed to TARGET_WINS with every unit increase). The p-value is 3.07e-07 *** (predictor is significant). The R-squared is 0.01167 (explains about 1.2% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_PITCHING_H, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_PITCHING_H", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_PITCHING_H, data=data))
+```
+
+Points under 5000. 
+
+```{r echo=FALSE}
+ggplot(data[data$TEAM_PITCHING_H<5000,], aes(x=data$TEAM_PITCHING_H[data$TEAM_PITCHING_H<5000], y=data$TARGET_WINS[data$TEAM_PITCHING_H<5000])) + 
+  geom_point() + geom_smooth(method=lm) + labs(x="TEAM_PITCHING_H", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_PITCHING_H, data=data[data$TEAM_PITCHING_H<5000,]))
+```
+
+---
+
+### TEAM_PITCHING_HR
+
+Home runs allowed.
+
+No missing values. 
+
+Positive relationship (expected theoretical effect is <b>negative</b>). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.048572  (points contributed to TARGET_WINS with every unit increase). The p-value is <2e-16 *** (predictor is significant). The R-squared is 0.03573 (explains about 3.6% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_PITCHING_HR, y=data$TARGET_WINS)) + geom_point() + geom_smooth(method=lm) + 
+  labs(x="TEAM_PITCHING_HR", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_PITCHING_HR, data=data))
+```
+
+---
+
+### TEAM_PITCHING_SO (102 Missing)
+
+Strikeouts by pitcher. 
+
+102 missing values.
+
+Simple linear regression result suggests that this variable is significant.
+
+Negative relationship (expected theoretical effect is <b>positive</b>). No obvious curved patterns observed from visually inspecting the scatter plots only. Outliers may have a strong influence on the regression line. Most points are under 2000. A second scatter plot that only looks at points below 2000 also shows a negative relationship. 
+
+Linear regression predictor coefficient is -0.0022085  (points contributed to TARGET_WINS with every unit increase). The p-value is 0.000252 *** (predictor is significant). The R-squared is 0.006152 (explains less than 1% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_PITCHING_SO, y=data$TARGET_WINS)) + 
+  geom_point() + geom_smooth(method=lm) + labs(x="TEAM_PITCHING_SO", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_PITCHING_SO, data=data))
+```
+
+Scatter plot of points below 2000.
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data[data$TEAM_PITCHING_SO<2000,], aes(x=data$TEAM_PITCHING_SO[data$TEAM_PITCHING_SO<2000], y=data$TARGET_WINS[data$TEAM_PITCHING_SO<2000])) + 
+  geom_point() + geom_smooth(method=lm) + labs(x="TEAM_PITCHING_SO", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_PITCHING_SO, data=data[data$TEAM_PITCHING_SO<2000,]))
+```
+
+---
+
+## BASE RUN VARIABLES
+
+
+### TEAM_BASERUN_SB (131 Missing)
+
+Stolen bases. 
+
+131 missing values. 
+
+Results of simple linear regression below suggests that this variable is significant.  
+
+Positive relationship (expected theoretical effect is positive). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.02273 (points contributed to TARGET_WINS with every unit increase). The p-value is 3.3e-10 *** (predictor is significant). The R-squared is 0.01826 (explains about 1.8% of variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BASERUN_SB, y=data$TARGET_WINS)) + 
+  geom_point() + geom_smooth(method=lm) + labs(x="TEAM_BASERUN_SB", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BASERUN_SB, data=data))
+```
+
+---
+
+### TEAM_BASERUN_CS (772 Missing)
+
+Caught stealing. 
+
+772 missing values. Results of simple linear regression below suggests that this variable is not significant. 
+
+Recommendation is to drop this variable from the model. 
+
+Positive relationship (expected theoretical effect is <b>negative</b>). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is 0.01314 (points contributed to TARGET_WINS with every unit increase). The p-value is 0.385 (predictor is not significant at the 5% level). The R-squared is 0.0005019 (explains less than 1% variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_BASERUN_CS, y=data$TARGET_WINS)) + 
+  geom_point() + geom_smooth(method=lm) + labs(x="TEAM_BASERUN_CS", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_BASERUN_CS, data=data))
+```
+
+---
+
+## FIELDING VARIABLES 
+
+
+### TEAM_FIELDING_E
+
+Errors.
+
+No missing values. 
+
+Negative relationship (expected theoretical effect is negative). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is -0.012205 (points contributed to TARGET_WINS with every unit increase). The p-value is <2e-16 *** (predictor is significant). The R-squared is 0.03115 (explains about 3.1% variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_FIELDING_E, y=data$TARGET_WINS)) + 
+  geom_point() + geom_smooth(method=lm) + labs(x="TEAM_FIELDING_E", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_FIELDING_E, data=data))
+```
+
+---
+
+### TEAM_FIELDING_DP (286 missing)
+
+Double plays. 
+
+286 missing values. Results of simple linear regression below suggests that this variable is not significant. 
+
+Recommendation is to drop this variable from the model. 
+
+Negative relationship (expected theoretical effect is <b>positive</b>). No obvious curved patterns observed from visually inspecting the scatter plots only.
+
+Linear regression predictor coefficient is -0.01853 (points contributed to TARGET_WINS with every unit increase). The p-value is 0.12 (predictor is not significant at 5% level). The R-squared is 0.001215 (explains less than 1% variability of response variable).
+
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(data, aes(x=data$TEAM_FIELDING_DP, y=data$TARGET_WINS)) + 
+  geom_point() + geom_smooth(method=lm) + labs(x="TEAM_FIELDING_DP", y="TARGET_WINS", title="")
+```
+
+```{r}
+summary(lm(TARGET_WINS ~ TEAM_FIELDING_DP, data=data))
+```
+
+
+---
+
+# Linear Regression Model
+
+## Variable Selection 
+
+<br/> 
+
+#### MISSING DATA
+
+As discussed in <i>MISSING DATA</i> section, predictors with missing data that are not significant based on simple linear regression with response variable are going to be dropped from the variable selection process. Details of regression is shown in section <i>Simple Linear Regressions of each Variable</i>. Predictors with missing data that are significant will be considered in the selection process, but incomplete observations are going to be dropped. At most 233 observations are going to be ignored if at least one variable is in the model. Of the six variables with missing data, four are dropped. Total possible observation is 2276. 
+
+<br/>
+
+<b>DROP VARIABLES:</b> 
+
+- TEAM_BATTING_HBP:   2085 missing values (p-value 0.312)
+- TEAM_BATTING_SO:    102 missing values (p-value 0.139)
+- TEAM_BASERUN_CS:    772 missing (p-value 0.385)
+- TEAM_FIELDING_DP:   286 missing (p-value 0.12)
+
+<b>IGNORE OBSERVATIONS:</b>
+
+- TEAM_BASERUN_SB:    131 missing values
+- TEAM_PITCHING_SO:   102 missing values 
+
+<br/>
+
+#### STRONGLY CORRELATED VARIABLES
+
+We need to be mindful when selecting variables in the model that are strongly correlated.
+
+- TEAM_BATTING_H and TEAM_PITCHING_H are perfectly correlated (cor 1.0).
+- TEAM_BATTING_HR and TEAM_PITCHING_HR are perfectly correlated (cor 1.0).
+- TEAM_BATTING_BB and TEAM_PITCHING_BB are perfectly correlated (cor 1.0).
+- TEAM_BATTING_SO and TEAM_PITCHING_SO are perfectly correlated (cor 1.0).
+
+<br/>
+
+#### OPPOSITE EFFECT
+
+Below is a list of variables with opposite effect on response variable when compared to theoretical effected noted on the homework sheet. 
+
+See <i>Simple Linear Regressions of each Variable</i> for more details. 
+
+- TEAM_PITCHING_BB: training data effect is <b>positive</b> on response variable, but expected theoretical effect is <b>negative</b>. 
+- TEAM_PITCHING_HR: training data effect is <b>positive</b> on response variable, but expected theoretical effect is <b>negative</b>. 
+- TEAM_PITCHING_SO: training data effect is <b>negative</b> on response variable, but expected theoretical effect is <b>positive</b>.
+- TEAM_BASERUN_CS (dropped): training data effect is <b>positive</b> on response variable, but expected theoretical effect is <b>negative</b>. 
+- TEAM_FIELDING_DP (dropped): training data effect is <b>negative</b> on response variable, but expected theoretical effect is <b>positive</b>. 
+
+
+<br/>
+
+#### POSSIBLE VARIABLES 
+
+|  PITCHING VARS     | BATTING VARS             | OTHER VARS      |
+|--------------------|--------------------------|-----------------|
+|  TEAM_PITCHING_SO  | TEAM_BATTING_BB          | TEAM_FIELDING_E |                          
+|  TEAM_PITCHING_BB  | <b>TEAM_BATTING_HR</b>   | TEAM_BASERUN_SB |
+|  TEAM_PITCHING_HR  | <b>TEAM_BATTING_H</b>    |                 |
+|  TEAM_PITCHING_H   | <b>TEAM_BATTING_2B</b>   |                 |
+|                    | <b>TEAM_BATTING_3B</b>   |                 |
+                     
+                     
+
+Because of strong correlation between PITCHING and BATTING variables, the model with either use variables from the PTCHING group OR BATTING group but not variables from both categories. Th variables in the <i>OTHER VARS</i> category do not show particularly strong correlations with any of the other variables in the possible selection list. 
+
+
+### Model 1
+
+
+Model 1 is a linear-linear regression model with no variable transformations. 
+
+Because TEAM_BATTING_H includes TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, model 1 will only use TEAM_BATTING_H. 
+
+Selected variables from model 1: 
+
+- TEAM_BATTING_H
+_ TEAM_BATTING_BB
+- TEAM_FIELDING_E
+- TEAM_BASERUN_SB
+
+```{r}
+model1 <- lm(data$TARGET_WINS ~ data$TEAM_BATTING_H + data$TEAM_BATTING_BB + data$TEAM_FIELDING_E + data$TEAM_BASERUN_SB, data=data)
+```
+
+Model 1 linear model summary below shows that all predictors (except the intercept) are significant. 
+
+The residuals median is close to zero (0.018). 
+
+The Adjusted R-squared is 0.3055 (explains 30.55% of variability of response variable). 
+
+```{r}
+summary(model1)
+```
+
+### VIF of Model 1
+
+Source: http://www.sthda.com/english/articles/39-regression-model-diagnostics/160-multicollinearity-essentials-and-vif-in-r/
+
+For a given predictor (p), multicollinearity can assessed by computing a score called the variance inflation factor (or VIF), which measures how much the variance of a regression coefficient is inflated due to multicollinearity in the model.
+
+The VIF of all predictors for model 1 are under 5. The smallest value for VIF is 1. As a rule of thumb, VIF of 5 or higher creates a problematic amount of collinearity.
+
+```{r}
+VIF(model1)
+```
+
+<br /> 
+
+#### Standardized Residual Analysis of Model 1
+
+The article linked below discusses how standardized residual plots should look like for an acceptable model.
+
+Source: https://www.qualtrics.com/support/stats-iq/analyses/regression-guides/interpreting-residual-plots-improve-regression/
+
+Standardized residual plots should have these characteristics: 
+
+(1) they're pretty symmetrically distributed, tending to cluster towards the middle of the plot.
+(2) they're clustered around the lower single digits of the y-axis (e.g., 0.5 or 1.5, not 30 or 150).
+(3) in general, there aren't't any clear patterns.
+
+As you can see, the standardized residual plot of model 1 seem to display the characteristics described above. Generally, the residuals are between -2 and 2 (not a big range). They're symmetrically distributed along the zero horizontal line (indicating low errors between actual and predicted). I do not see any curved patterns. 
+
+
+```{r}
+model1.predict <- predict(model1)
+model1.stdres <- rstandard(model1)
+```
+
+```{r}
+plot(model1.predict, model1.stdres, ylab="Standardized Residuals", xlab="Predicted Target Wins",  main="Model 1") 
+abline(0, 0) 
+```
+
+#### Interpretation of Coefficients of Model 1
+
+(1) The intercept (1.484126) is not significant. 
+
+(2) TEAM_BATTING_H (0.046404): A unit increase in TEAM_BATTING_H (base hits by batter) increases TARGET_WINTS by 0.046404 points. 
+
+(3) TEAM_BATTING_BB (0.02359): A unit increase in TEAM_BATTING_BB (walks by batters) increases TARGET_WINS by 0.02359 points.
+
+(4) TEAM_FIELDING_E (-0.034254): A unit increase in TEAM_FIELDING_E (errors) decreases TARGET_WINS by 0.034254 points. 
+
+(5) TEAM_BASERUN_SB (0.050277): A unit increase in TEAM_BASERUN_SB (stolen bases) increases TARGET_WINS by 0.050277 points. 
+
+---
+
+<br /> 
+
+
+### Model 2
+
+
+Model 2 is a linear-linear regression model with no variable transformations. 
+
+Because TEAM_BATTING_H includes TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, model 2 will not use TEAM_BATTING_H. Instead, it will use TEAM_BATTING_2B, TEAM_BATTING_3B, TEAM_BATTING_HR, and a calculated column for TEAM_BATTING_1B. 
+
+Selected variables from model 2: 
+
+- TEAM_BATTING_1B (calculated)
+- TEAM_BATTING_2B (removed from final version of model 2)
+- TEAM_BATTING_3B
+- TEAM_BATTING_HR
+_ TEAM_BATTING_BB
+- TEAM_FIELDING_E
+- TEAM_BASERUN_SB
+
+<br /> 
+
+#### CALCULATE TEAM_BATTING_1B
+
+```{r}
+data$TEAM_BATTING_1B <- data$TEAM_BATTING_H - data$TEAM_BATTING_2B - data$TEAM_BATTING_3B - data$TEAM_BATTING_HR
+```
+
+<br/>
+
+The first attempt at building model2 shows that TEAM_BATTING_2B is not a significant predictor (p-value 0.991). 
+
+So we are going to remove TEAM_BATTING_2B from the model. 
+
+```{r}
+model2 <- lm(data$TARGET_WINS ~ data$TEAM_BATTING_1B + data$TEAM_BATTING_2B + data$TEAM_BATTING_3B + data$TEAM_BATTING_HR + TEAM_BATTING_BB + 
+             TEAM_FIELDING_E +TEAM_BASERUN_SB , data=data)
+summary(model2)
+```
+
+<br/> 
+
+The updated version of model 2, which excludes TEAM_BATTING_2B shows that all predictors are significant except the intercept.  
+
+The residual median of model 2 is -0.003 (which is closer to zero than model 1 at 0.018)
+
+The Adjusted R-squared is 0.3261 (explains 32.61% of variability of response variable), which is larger than model 1 at 0.3255. 
+
+```{r}
+model2 <- lm(data$TARGET_WINS ~ data$TEAM_BATTING_1B + data$TEAM_BATTING_3B + data$TEAM_BATTING_HR + data$TEAM_BATTING_BB + 
+             data$TEAM_FIELDING_E + data$TEAM_BASERUN_SB , data=data)
+summary(model2)
+```
+
+<br /> 
+
+
+#### VIF of Model 2
+
+None of the VIF values of the predictors are above 5. This means that model does not have problematic amount of collinearity. 
+
+```{r}
+VIF(model2)
+```
+
+<br /> 
+
+#### Standardized Residual Analysis of Model 2
+
+The standardized residual plot of model 2 has a very similar shape and pattern to  model 1 although the range is larger (-4 to 4). 
+
+
+```{r}
+model2.predict <- predict(model2)
+model2.stdres <- rstandard(model2)
+```
+
+```{r}
+mse(y_pred = model2.predict, y_true=data$TARGET_WINS)
+```
+
+
+```{r}
+plot(model2.predict, model2.stdres, ylab="Standardized Residuals", xlab="Predicted Target Wins",  main="Model 2") 
+abline(0, 0) 
+```
+
+
+<br/>
+
+#### Interpretation of Coefficients of Model 2
+
+- The intercept (1.306120) is not significant.
+- The coefficients for TEAM_BATTING_1B, TEAM_BATTING_3B, TEAM_BATTING_HR, TEAM_BATTING_BB, TEAM_BASERUN_SB is the number of points TARGET_WINS increases by when predictor increases by one unit. 
+- The coefficient for TEAM_FIELDING_SE has a negative sign. This means that a unit increase in TEAM_FIELDING_E (errors) decreases TARGET_WINS by 0.037129 points. 
+
+
+----
+
+<br /> 
+
+### Model 3
+
+
+Model 3 is a linear-log model. It takes model 1 and applies a log transformation to the predictors of model 1. 
+
+The response variable TARGET_WINS looks approximately normal already and does not have any noticeable marked skewness. So we're leaving the response variable as is. 
+
+TEAM_BATTING_BB is skewed to the left but has an approximate normal distribution. TEAM_BATTING_H is skewed to the right but has an approximate normal shape. TEAM_FIELDING_E is markedly skewed to the right. TEAM_BASERUN_SB is also markedly skewed to the right.
+
+<br /> 
+
+Remove incomplete cases. We have 2143 complete cases. 
+
+```{r}
+data2 <- data[, c("TARGET_WINS", "TEAM_BATTING_H", "TEAM_BATTING_BB", "TEAM_BATTING_BB", "TEAM_FIELDING_E", "TEAM_BASERUN_SB")]
+data2 <- data2[complete.cases(data2),]
+data2<-data2[!(data2$TEAM_BATTING_BB==0),]
+data2<-data2[!(data2$TEAM_BASERUN_SB==0),]
+nrow(data2)
+```
+
+<br/> 
+
+All predictors of model 3 are significant, including the intercept. 
+
+The residual median is -0.314 (still close to zero). 
+
+However, the adjusted R-squared is only 0.2653, which is lower compared to model 1 and model 2. 
+
+
+```{r}
+model3 <- lm(data2$TARGET_WINS ~ log(data2$TEAM_BATTING_H) + log(data2$TEAM_BATTING_BB) + log(data2$TEAM_FIELDING_E) + 
+               log(data2$TEAM_BASERUN_SB), data=data2)
+summary(model3)
+```
+
+<br /> 
+
+#### VIF of Model 3
+
+As expected, none of the VIF values of the predictors are above 5. This means that model does not have problematic amount of collinearity. 
+
+```{r}
+VIF(model3)
+```
+
+<br /> 
+
+#### Standardized Residual Analysis of Model 3
+
+The standardized residual plot of model 3 has a very similar shape and pattern to both model 1 and 2. The range of spread is very similar to model 2 (-4 to 4); however, the points on the plot look more spread out. 
+
+The residual standard error of model 3 is highest among the 3 models (12.55), followed by model 1 (12.31), and model 2 (12.12). 
+
+So, model 2 has the best fit in terms of residuals. 
+
+
+```{r}
+model3.predict <- predict(model3)
+model3.stdres <- rstandard(model3)
+```
+
+```{r}
+plot(model3.predict, model3.stdres, ylab="Standardized Residuals", xlab="Predicted Target Wins",  main="Model 3") 
+abline(0, 0) 
+```
+
+
+
+<br/>
+
+#### Interpretation of Coefficients of Model 3
+
+- The intercept of model 3 is significant (-469.1348). 
+- A 1% increase in TEAM_BATTING_H will increase TARGET_WINS by 67.9951.
+- A 1% increase in TEAM_BATTING_BB will increase TARGET_WINS by 11.3472, 
+- A 1% increase in TEAM_FIELDING_E will decrease TARGET_WINS by -8.3150.
+- A 1% increase in TEAM_BASERUN_SB will increase TARGET_WINS by 5.8308. 
+
+<br/>
+
+---
+
+### Model Chosen 
+
+Because model 2 has has the least residual standard error (12.12) and highest adjusted R-squared (0.3261), this model is chosen to do the prediction on the predict data set. 
+
+
+Read data to be predicted. 
+
+```{r echo=FALSE}
+eval_data <- read.csv(file="moneyball-evaluation-data.csv", header=TRUE, sep=",")
+```
+
+Calculated TEAM_BATTING_1B in evaluation data. 
+
+```{r}
+eval_data$TEAM_BATTING_1B <- eval_data$TEAM_BATTING_H - eval_data$TEAM_BATTING_2B - eval_data$TEAM_BATTING_3B - eval_data$TEAM_BATTING_HR
+```
+
+
+Predict target_wins based on model 2 and write to CSV file. 
+
+
+```{r warning=FALSE}
+predicted_targetWins <- predict(model2, newdata=data.frame(eval_data))
+write.csv(predicted_targetWins, file = "Model2-Predcited_TargetWins.csv")
+```
+
+
+---
+
+

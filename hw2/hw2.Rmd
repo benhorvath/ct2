@@ -1,0 +1,133 @@
+---
+title: "DATA 621---Assignment no. 2"
+author: "Critical Thinking Group 2"
+date: "October 10, 2019"
+output:
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+
+# Load libraries
+library(caret)
+library(pROC)
+```
+
+
+# Executive Overview
+
+We explore metrics to evaluate the performance of classification algorithms, including custom R functions, on a real dataset:
+
+* Accuracy
+* Classification error rate
+* Precision
+* Sensitivity
+* F1 score
+* ROC curve
+
+We also examine the functionality of the `caret` and `pROC` packages.
+
+```{r, echo=FALSE}
+# load data
+df <- read.csv('classification-output-data.csv', stringsAsFactors=FALSE)
+```
+
+
+
+# 2. Confusion matrix
+
+
+
+
+
+
+
+# 3. Accuracy
+
+
+
+
+
+
+
+# 4. Classification error rate
+
+
+
+
+
+
+
+# 5. Precision
+
+[BEN]
+
+
+
+
+# 6. Sensitivity
+
+[BEN]
+
+
+
+
+
+# 7. Specificity
+
+
+
+
+
+
+
+# 8. F1 score
+
+[BEN]
+
+
+
+
+
+# 9. F1 score: Bounds
+
+
+
+
+
+
+
+# 10. ROC curve
+
+
+
+
+
+
+
+# 11. In Practice
+
+
+
+
+
+
+
+# 12. `caret` package
+
+
+
+
+
+
+
+# 13. `pROC` package
+
+
+
+
+
+
+

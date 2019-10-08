@@ -12,6 +12,7 @@ knitr::opts_chunk$set(message=FALSE, warning=FALSE)
 
 # Load libraries
 library(caret)
+library(dplyr)
 library(pROC)
 ```
 
@@ -62,16 +63,79 @@ df <- read.csv('classification-output-data.csv', stringsAsFactors=FALSE)
 
 # 5. Precision
 
-[BEN]
+Precision measures how reliable a model's positive predictions are, i.e., $P(Positive ~|~ model=Positive)$. A poor (low) precision score indicates many of the positive predictions are likely to be _false_ positives. For instance, if you have 100 positive (spam) predictions from a spam e-mail detection model, how many of them are actually positive (spam)? Thus the formula is:
+
+$$Precision = \frac{TP}{TP + FP}$$
+
+R function:
 
 
+```{r}
+calc_precision <- function(actual, predicted, pos=1) {
+    if (length(unique(actual)) != 2 | length(unique(predicted)) != 2) {
+        stop('Actual and predicted vectors may only have two distinct values')
+    }
+    
+    # set pos/neg to TRUE/FALSE as conveniance
+    actual <- ifelse(actual == pos, TRUE, FALSE)
+    predicted <- ifelse(predicted == pos, TRUE, FALSE)
+    
+    conf_matrix <- as.data.frame(table(actual, predicted)) %>%
+        arrange(actual, predicted)
+    
+    TP <- conf_matrix$Freq[4]
+    FP <- conf_matrix$Freq[2]
+    
+    return( TP / (TP + FP) )
+
+}
+```
+
+Applied to data set:
+
+```{r}
+calc_precision(df$class, df$scored.class)
+```
+
+Thus the model that scored this dataset performs fairly reliably on positive cases.
 
 
 # 6. Sensitivity
 
-[BEN]
+Also called recall, this measures how often a model will return a positive result given a positive example. In a way, it is the reverse of precision, i.e., sensitivity is $P(model=Positive ~|~ Positive)$. For instance, if a spam e-mail detection model was given 100 spam e-mails, how many will the model label as spam (positive)? The resulting number is sensitivity. It is calculated by:
 
+$$Sensitivity = \frac{TP}{TP + FN}$$
 
+where a score of 1 indicates perfect sensitivity, the event where there are no false negatives.
+
+Function to calculate sensitivity:
+
+```{r}
+calc_sensitivity <- function(actual, predicted, pos=1) {
+    if (length(unique(actual)) != 2 | length(unique(predicted)) != 2) {
+        stop('Actual and predicted vectors may only have two distinct values')
+    }
+    
+    # set pos/neg to TRUE/FALSE as conveniance
+    actual <- ifelse(actual == pos, TRUE, FALSE)
+    predicted <- ifelse(predicted == pos, TRUE, FALSE)
+    
+    conf_matrix <- as.data.frame(table(actual, predicted)) %>%
+        arrange(actual, predicted)
+    
+    TP <- conf_matrix$Freq[4]
+    FN <- conf_matrix$Freq[3]
+    
+    return( TP / (TP + FN) )
+
+}
+```
+
+Applied to dataframe:
+
+```{r}
+calc_sensitivity(df$class, df$scored.class)
+```
 
 
 
@@ -85,10 +149,35 @@ df <- read.csv('classification-output-data.csv', stringsAsFactors=FALSE)
 
 # 8. F1 score
 
-[BEN]
+The F1 score is an attempt to balance sensitivity and precision, perhaps in cases where costs of false negative and false positive predictions are comparable. The formula is:
 
+$$F1 = 2 \cdot \frac{Precision \cdot Sensitivity}{Precision + Sensitivity}$$
 
+R function:
 
+```{r}
+calc_f1 <- function(actual, predicted, pos=1) {
+    if (length(unique(actual)) != 2 | length(unique(predicted)) != 2) {
+        stop('Actual and predicted vectors may only have two distinct values')
+    }
+    
+    # set pos/neg to TRUE/FALSE as conveniance
+    actual <- ifelse(actual == pos, TRUE, FALSE)
+    predicted <- ifelse(predicted == pos, TRUE, FALSE)
+    
+    # truncating in this annoying manner to avoid package conflicts with caret
+    precis <- calc_precision(actual, predicted, pos=pos)
+    sensit <- calc_sensitivity(actual, predicted, pos=pos)
+    
+    return( 2 * ( (precis * sensit) / (precis + sensit) ) )
+}
+```
+
+The F1 score for the scored dataset is:
+
+```{r}
+calc_f1(df$class, df$scored.class)
+```
 
 
 # 9. F1 score: Bounds

@@ -1,0 +1,72 @@
+---
+title: "DATA 621---Assignment no. 3"
+author: "Critical Thinking Group 2"
+date: "October 30, 2019"
+output:
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+
+# Load libraries
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+```
+
+
+# Executive Overview
+
+blah balh
+
+Create train and test sets using the `caret` machine learning package:
+
+__Only use the `train` data frame until the very end of the process, when we use test to evaluate how effective the model is!__
+
+```{r, echo=FALSE}
+df <- read.csv('crime-training-data_modified.csv', stringsAsFactors=FALSE) %>%
+  mutate(target = as.factor(target))
+
+set.seed(1804)
+train_ix <- createDataPartition(df$target, p=0.8, list=FALSE)
+train <- df[train_ix, ]
+test <- df[-train_ix, ]
+rm(df)
+```
+
+
+
+
+# Data Exploration
+
+```{r}
+ggplot(train, aes(x=jitter(nox), y=jitter(as.numeric(target)))) + 
+  geom_point() + 
+  geom_smooth() + 
+  geom_smooth(method='lm', color='red')
+```
+
+
+# Data Preparation
+
+
+
+
+# Modeling
+
+Baseline model, which just predicts the class proportion. It is the model to beat. If we are having trouble improving on this model, we know we are doing something wrong.
+
+This dummy model has an accuracy of about 0.50, sensitivity of 1, and specificity of 0. Since it has zero predictive power, we know that it has a pseudo-$R^2$ of 0.
+
+```{r}
+m_0 <- glm(target ~ 1, train, family=binomial())
+pred_0 <- factor(round(predict(m_0, train, type='response')), levels=c('0', '1'))
+confusionMatrix(data=pred_0, reference=train$target)
+```
+
+
+
+

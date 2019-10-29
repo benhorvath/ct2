@@ -124,12 +124,14 @@ confusionMatrix(data=pred_1, reference=factor(train$target, levels=c('0', '1')))
 ```
 
 
-# $M_2$: Stepwise variable selection with interactions
+## $M_2$: Stepwise variable selection with interactions
 
 We know that variable interaction is probably likely. We can automatically test all interactions using stepwise selection:
 
 ```{r}
-m_2 <- stepAIC(m_1, trace=0, scope=list(upper = ~zn*indus*chas*nox*rm*age*dis*rad*tax*ptratio*lstat*medv, lower= ~1))
+m_2 <- stepAIC(m_1, trace=0, scope=list(upper = ~ zn * indus * chas * nox * rm * 
+                                          age * dis * rad * tax * ptratio * 
+                                          lstat*medv, lower= ~1))
 summary(m_2)
 ```
 
@@ -143,7 +145,7 @@ i.e., 12 variables.
 
 
 
-# $M_3$: Adjusting for multiple significance tests
+## $M_3$: Adjusting for multiple significance tests
 
 To correct for this overfitting, we will use the `p.adjust` function to revise our p-values, and then use those that remain significant at $p = 0.05$ for the next model:
 
@@ -152,32 +154,67 @@ m_2_p <- summary(m_2)$coefficients[,4]
 sort(p.adjust(m_2_p))
 ```
 
-Using the top values:
+Using the top values (including any variable as well as interaction effect:
 
 ```{r}
-m_3 <- glm(target ~ rm:age + age + rad + age:medv + rm, train, family=binomial())
+m_3 <- glm(target ~ age*rm + rad + age*medv, train, family=binomial())
 pred_3 <- factor(round(predict(m_3, train, type='response')), levels=c('0', '1'))
 confusionMatrix(data=pred_3, reference=factor(train$target, levels=c('0', '1')))
 calc_r2(m_3)
 ```
 
-The psuedo-$R^2$ is naturally much less than the overfit $M_2$. Presumably, it will be better fit to the hold-out sample, however. We do see theat sensitivity, specificity, and pos/neg predictive value are actually still pretty strong.
+The psuedo-$R^2$ is naturally much less than the overfit $M_2$. Presumably, it will be better fit to the hold-out sample, however. We do see theat sensitivity, specificity, and pos/neg predictive value are actually still pretty strong. As expected and required, all variables are extremely significant.
 
+```{r}
+summary(m_3)
+```
 
-# $M_4$: Previous model + a few more predictors
+## $M_4$: Previous model + a few more predictors
 
 We noted above that we have data for up to 12 variables in this model, so I will include the first 12 significant variables of the p-value adjustment:
 
 ```{r}
-m_4 <- glm(target ~ rm:age + age + rad + age:medv + rm + tax + indus + 
-             indus:tax + dis:tax + nox:age + zn + dis, train, family=binomial())
+m_4 <- glm(target ~ age*rm + rad + age*medv +
+             indus*tax + dis*tax + nox*age + zn, train, family=binomial())
 pred_4 <- factor(round(predict(m_4, train, type='response')), levels=c('0', '1'))
 confusionMatrix(data=pred_4, reference=factor(train$target, levels=c('0', '1')))
 calc_r2(m_4)
 ```
 
-Despite adding all these variables, and their significance, we see that the confusion matrix evaluations are not that much higher. Psuedo-$R^2$ did take a nice bump, though. Nonetheless, it is possible that this model does not fit the hold out sample as well as $M_3$.
+Despite adding all these variables, we see that the confusion matrix evaluations are not that much higher. Psuedo-$R^2$ did take a nice bump, though. Nonetheless, it is possible that this model does not fit the hold out sample as well as $M_3$.
 
+```{r}
+summary(m_4)
+```
+
+
+
+## $M_5$: PCA
+
+```{r}
+pca <- prcomp(train[,1:12], retx=TRUE, center=TRUE, scale=TRUE)
+summary(pca)
+```
+
+The first five account for 87 percent of variation, so we will use those for modeling:
+
+```{r}
+pca_df <- as.data.frame(cbind(train$target, pca$x[,1:5]))
+colnames(pca_df) <- c('target', 'PC1', 'PC2' ,'PC3', 'PC4', 'PC5')
+
+m_5 <- glm(target ~ ., pca_df, family=binomial())
+pred_5 <- factor(round(predict(m_5, pca_df, type='response')), levels=c('0', '1'))
+confusionMatrix(data=pred_5, reference=factor(train$target, levels=c('0', '1')))
+calc_r2(m_5)
+```
+
+This model has similar confusion matrix evaluation values as some models above, though it's psuedo-$R^2$ value is a bit low.
+
+The results of this exercise with PCA seem to suggests there are three seperate 'clusters' of phenomenon that affect crime level, at least at a statistically significant level. All three are negative related.
+
+```{r}
+summary(m_5)
+```
 
 
 # Evaluating the Models on the Test Set
@@ -185,4 +222,15 @@ Despite adding all these variables, and their significance, we see that the conf
 ```{r}
 # Don't run until the very end
 # confusionMatrix(data=predict(model, test), reference=test$target)
+
+# Evaluate on F1 score
+
+
+# For PCA prediction:
+# pred_xx <- factor(round(predict(m_5, as.data.frame(predict(pca, newdata=test)), type='response')), levels=c('0', '1'))
 ```
+
+
+## Analysis of Final Model
+
+

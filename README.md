@@ -6,7 +6,7 @@ Members:
 
 * Ben H.
 * Yohannes Deboch
-*
+* Samriti Malhotra
 *
 *
 *

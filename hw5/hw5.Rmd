@@ -1,0 +1,223 @@
+---
+title: "DATA 621---Assignment no. 5"
+author: "Critical Thinking Group 2"
+date: "December 5, 2019"
+output:
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE)
+
+# Load libraries
+library(caret)
+library(ClustOfVar)
+library(corrplot)
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(mice)  # data imputation!
+library(tidyr)
+```
+
+
+# Executive Overview
+
+We build and evaluate a number of models designed to predict how many cases of particular wine is sold. Most of the independent variables relate the chemical properties of the wine itself. These include acidity, alcohol content, sulfates, and others. Each model is evaluated on a hold-out set, of 10 percent of the data.
+
+TODO clusters of variables
+
+TODO short description of models
+
+TODO short description of inference
+
+\vspace{3em}
+
+Any model fit on data has the risk of being _overfit_, i.e., where the model does not capture the true relationship between the variables, but instead captures idiosyncratic details of the sample. To help avoid this outcome, we have split the dataset into `train` and `test` dataframes. 
+
+Since the dataset is fairly large, we can train our models on 90 percent of the data, reserving only 10 percent for testing. All data exploration, modeling, etc., is done on the `train` set. Only at the end of this process have we examined `test`.
+
+```{r, echo=FALSE}
+df <- read.csv('wine-training-data.csv', stringsAsFactors=FALSE)
+
+set.seed(1804)
+train_ix <- createDataPartition(df$TARGET, p=0.90, list=FALSE)
+train <- df[train_ix, ]
+test <- df[-train_ix, ]
+rm(df)
+
+print(paste('Rows in training data set:', nrow(train)))
+print(paste('Rows in test data set:', nrow(test)))
+```
+
+
+
+# Data Exploration
+
+For each wine in our `train` data set, the data provides measures of its chemical properties:
+
+| Variable           | Notes                                                                                                                     |
+|--------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| TARGET             | $y$, The number of cases of wine sold                                                                                                |
+| AcidIndex          | Measure of overall acidity                                                                                                      |
+| Alcohol            |              |
+| Chlorides          | Chloride content, related to saltiness                                                                                                   |
+| CitricAcid         |                                                                                                         |
+| Density            | Measure of density: weight-to-volume ratio                                                                                      |
+| FixedAcidity       |  |
+| FreeSulfurDioxide  | Free $SO_2$ functions as a preservative |
+| LabelAppeal        | Expert score of the label design                                                                                                |
+| ResidualSugar      | Sugar remaining after fermentation                                                                                              |
+| STARS              | Expert wine rating from 1 to 4                                                                                                  |
+| Sulphates          | Measure of sulfates (salts of sulfuric acid)                                                                                    |
+| TotalSulfurDioxide |                                                                                                                                 |
+| VolatileAcidity    | Volatile acid is related to wines' aroma                                                                                        |
+| pH                 |            
+
+
+
+## Missing values
+
+The table below provides the number of missing values for each variable in `train`:
+
+```{r}
+sort(sapply(train, function(x) sum(is.na(x))))
+```
+
+Most independent variables are missing between five and six hundred observations, or about 5 percent.
+
+However, the expert rating variable `STARS` is missing over a quarter! Exploratory analysis will determine if this varible is particularly informative regarding sales. If it proves to be, an imputation stragegy is recommended.
+
+
+
+
+## Distribution of independent variables
+
+```{r}
+train %>%
+  dplyr::select(-INDEX) %>%
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales='free') +
+    geom_histogram(colour='black', fill='white')
+```
+
+Our main variable of interest, the number of boxes of wine sold, `TARGET` in the graph, has an almost-normal shape to it (except discrete). The plurality of wines sold about four boxes.
+
+However, notice the big bulge of wines that sell zero boxes. Zero is the second largest category. **This suggests the use of zero-inflated models will be appropriate for modeling this variable.**
+
+Most of the other variables also seem to have a large bulge at and around zero, e.g., chlorides, fixed acidity, density, and then a more uniform distribution immediately surrounding it.
+
+The expert ratings, `STARS`, rates 70 percent of wines at one or two. Another 23 percent is rated as a three, leaving only 6 percent to be rated at the highest score, four stars.
+
+```{r}
+round(prop.table(table(train$STARS)), 4)
+```
+
+_Outliers_: Visual inspection suggests there are no obvious one-off data entry errors. However, many of the chemical variables are dispered over a large range. It may make sense to transform these data to be narrower. Since the data often includes negative variables, a log transformation would be inappropriate. **If necessary, use square root transformation to reduce variance of variables.**
+
+
+
+## Relationship to wine sales
+
+Plot all independent variables against wine sales:
+
+```{r}
+train %>%
+  dplyr::select(-INDEX) %>%
+  gather(-TARGET, key='variable', value='value') %>%
+  ggplot(aes(x=jitter(value), y=jitter(TARGET))) +
+  geom_point(alpha=0.05) +
+  geom_smooth() +
+  facet_wrap(~ variable, scales='free')
+```
+
+(Because the data is discrete, I have jitted both axes and made the points partially transparent to make the relationships more obvious.)
+
+To our eyes, there are only three relationships that could be plausibly relevant to wine sales. The acid index has a curve around 10, suggesting that extra-acidic wines sell less. There is a reasonably linear and positive relationship between the label's graph design and sales. Finally, better rated wine tends to be purchased more.
+
+
+
+## Correlation
+
+As the plot below shows, there is strikingly little correlation among the variables. Even though multiple variables are different measures of different types of acidity, none of them are even minimally correlated!
+
+```{r}
+corrplot(cor(na.omit(train)), type='upper', method='number', order='hclust', number.cex=0.55)
+```
+
+The correlation between wine sales and expert rating is the only strong correlation in the chart (0.62). This suggests that our intuition was correct regarding the value of `STARS`, further suggesting that we may have lost a lot of predictive power had we not imputed the missing values.
+
+Otherwise, wine sales are only weakly correlated with two variables: `AcidIndex` (-0.25), and `LabelAppeal` (0.36).
+
+
+
+## Independent variable clusters
+
+We can use the `ClustOfVar` package to further study our independent variables, via hierarchical clustering:
+
+```{r}
+plot(hclustvar(train[3:16]))
+```
+
+This suggests five main groupings of variables. It is clear that the first group of `LabelAppeal` and `STARS` can be thought of as social recognition. The second, composed of measures of residual sugar and sulfuric dioxide, could be considered as a 'fermentation axis.' The third contains most measures of acidity.
+
+We cannot judge, even subjectively, what phenomena the last two clusters could be picking up on. Doubtless it is some chemical axes we are not qualified to speculate on.
+
+
+
+# Data Preparation
+
+The main purpose of this section is to describe missing data imputation.
+
+We saw above that a quarter of wines in the training sample are missing an expert rating, `STARS`. We also saw this variable is our only variable storngly correlated with the dependent variable. Thus we are chosing to impute missing variables.
+
+Imputation is handled with the `mice` package. The documentation explains:
+
+> The package creates multiple imputations (replacement values) for multivariate missing data. The method is based on Fully Conditional Specification, where each incomplete variable is imputed by a separate model.
+
+```{r}
+# NOTE: This process may take a minute or two
+mice_imputation <- mice(train, print=FALSE, seed=1804)
+train_imp <- mice::complete(mice_imputation)
+
+# no missing data!
+sort(sapply(train_imp, function(x) sum(is.na(x))))
+```
+
+
+# Modeling
+
+**at least two different poisson regression models**
+**at least two different negative binomial regression models**
+**and at least two multiple linear regression models, using different variables (or the same variables with different transformations).**
+**may also want to consider building zero-inflated poisson and negative binomial regression models.**
+
+evaluation criteria
+
+## $M_0$: Dummy model
+
+
+
+```{r}
+m_0 <- lm(TARGET ~ 1, train_imp)
+```
+
+
+
+
+
+
+# Evaluating the Models on the Test Set
+
+Evaluate each model based on its SOME SCORE on the test set, although we include other metrics as a convenianceS:
+
+```{r}
+
+```
+
+
+
+
+## Conclusion and Inferences

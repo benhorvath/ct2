@@ -45,7 +45,6 @@ df <- read.csv('wine-training-data.csv', stringsAsFactors=FALSE)
 #encountered strange characters on first column name "INDEX" 
 #https://www.roelpeters.be/removing-i-umlaut-two-dots-data-frame-column-read-csv/
 colnames(df)[1] <- gsub('^...','',colnames(df)[1])
-
 set.seed(1804)
 train_ix <- createDataPartition(df$TARGET, p=0.90, list=FALSE)
 train <- df[train_ix, ]
@@ -254,7 +253,7 @@ Metrics::rmse(train_imp$TARGET, pred_2)
 AIC(m_2)
 ```
 
-## $m_3$: Stepwise Multiple Linear Regression with `AcidIndex` as Polynomial. 
+## $M_3$: Stepwise Multiple Linear Regression with `AcidIndex` as Polynomial. 
 
 In this multiple linear regression model, the adjusted $R^2$ is 0.4731. The $RMSE$ is 1.397907. The $AIC$ is 40437.17. Model $m_3$ appears to be better compared to $m_1$ and $m_2$. In this model, `FixedAcidity`, `ResidualSugar`, and `CitricAcid` were dropped.
 
@@ -272,7 +271,7 @@ AIC(m_3)
 ```
 
 
-## $m_4$: Poisson Full Model
+## $M_4$: Poisson Full Model
 
 
 One of the assumptions of a Poisson regression model is that the variance and mean of the dependent variable are the same. The variance of the target variable is 3.713862 and the mean is 3.030127. This model includes all independent variables. The Nagelkerke $R^2$ is 0.4527626. The $RMSE$ is 1.401879. The $AIC$ is 42560.
@@ -298,7 +297,7 @@ Metrics::rmse(train_imp$TARGET, pred_4)
 ```
 
 
-## $m_5$: Stepwise Poisson Model 
+## $M_5$: Stepwise Poisson Model 
 
 In this step wise Poisson regression model, all the variables are included in the step wise process. In this model, `FixedAcidity`, `ResidualSugar`, and `CitricAcid` were dropped. 
 The remaining variables appear to be significant. The Nagelkerke pseudo $R^2$ is 0.4526647. The $RMSE$ is  1.402057. The $AIC$ is 42556 (lower than $m_4$). 
@@ -318,7 +317,7 @@ Metrics::rmse(train_imp$TARGET, pred_5)
 ```
 
 
-$M_6$: Stepwise Poisson with `AcidIndex` as Polynomial
+## $M_6$: Stepwise Poisson with `AcidIndex` as Polynomial
 
 In this step wise Poisson regression all the variables are included in the step wise selection. Variables `FixedAcidity`, `ResidualSugar`, and `CitricAcid` were dropped.
 The Nagelkerke pseudo $R^2$ is 0.4571626. The $RMSE$ is 1.396192 (lower than $m_5$ and $m_4$). The $AIC$ is 42468 (lower than $m_5$). 
@@ -337,7 +336,7 @@ pred_6 <- predict(m_6, train_imp, type="response")
 Metrics::rmse(train_imp$TARGET, pred_6)
 ```
 
-#$M_7$: Negative Binomial Full Model 
+## $M_7$: Negative Binomial Full Model 
 
 The variance of dependent variable (3.713862) is greater than the mean (3.030127). Negative binomial regression might provide a better fit. 
 
@@ -363,7 +362,7 @@ pred_7 <- predict(m_7, train_imp, type="response")
 Metrics::rmse(train_imp$TARGET, pred_7)
 ```
 
-#$M_8$: Negative Binomial Regression Model with only `STARS`, `LabelAppeal` and `AcidIndex`. 
+## $M_8$: Negative Binomial Regression Model with only `STARS`, `LabelAppeal` and `AcidIndex`. 
 
 In this negative binomial model, only three variables are used. The Nagelkerke pseudo $R^2$ is 0.4529641. The $RMSE$ is 1.400095. The $AIC$ is 42540. 
 
@@ -387,9 +386,6 @@ Metrics::rmse(train_imp$TARGET, pred_8)
 # Evaluating the Models on the Test Set
 
 Evaluate each model based on its SOME SCORE on the test set, although we include other metrics as a conveniences:
-
-```{r}
-```
 
 
 

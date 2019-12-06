@@ -48,43 +48,29 @@ Transmitting information is far less expensive than other proposed solutions. Bu
 
 # Literature Review
 
-<!-- Researchers collected data to test this hypothesis (Madajewicz, Pfaff, van Geen, et al. 2007). They studied the rural area of Arahazar, Bangladesh, which relies on wells for its water source. Studies in the early 1990s revealed abnormally high levels of naturally occuring arsenic in Bangladeshi wells. Further studies estimate that chronic arsenic exposure is responsible for up to 5 percent of mortality in these regions (van Green 2018). Part of the government's response, with the aid of universities and NGOs, includes mass well testing. Thus reliable information at a granular level of individual wells is available. It is a good test case for the impact of informing households of their water quality.
+As of 2017, 29 percent of the world lacked accessed to safe and managed drinking water that is clean, located on premises, and available regularly. Contamination is a massive obstacle to raising this number. Through diarrhoea, drinking contaminated water kills almost half a million people each year (World Health Organization 2019).
 
-Researchers returned after several years to mark whether households had indeed switched wells. They found that even when individual households and villages are advised which wells are unsafe to drink, only about half switch their consumption to safer wells (van Green, et al., 2006, 283). The data set contains scientific factors like the level of arsenic contamination in the usual well, as well as social factors like level of education and participation in the community. Learning more about what factors prevent households from switching could improve this technique even further---perhaps by better allocation of resources---making it an even cheaper solution to this grave crisis. -->
+The largest case of ground water contamination was discovered in Bangladesh in the early 1990s. Throughout the second half of the twentieth century, the government, humanitarian NGOs, and the private sector attempted to solve the country's water supply issues by mass installing _tube wells_ throughout the country. Typically five centimenters in diameter, these tubes are inserted into the ground to depths less than 200 meters. Water is brought to the surface via a hand pump. In 1997, UNICEF announced it had surpassed its Millenium goal to provide 80 percent of Bangledesh with 'safe' drinking water thanks to these tube wells (van Geen, et al., 2002).
 
-CLEAN WATER GENERALLY
+Tragically, research in the 1990s slowly uncovered that up to 77 million were drinking from tube wells contaminated with arsenic---half the population of Bangladesh. Arsenic consumption results in cancer, painful skin lesions, and other awful illnesses. The World Health Organization (WHO) considers water with a concentration higher than 10 micrograms/liter as dangerous. Studies estimate that 10 percent of people that consume water with 500 micrograms/liter of arsenic will likely die from its effects (van Geen, et al., 2002).
 
-BANGLADEHS WATER
+Several studies have documented the extent of arsenic poisoning in Bangladesh. A survey conducted in the mid-1990s examined 1630 residents of affected regions. They found that 57.5 percent suffered from skin lesions associated with toxic levels of arsenic (Dhar, et al., 1997). Another study examined 7264 patients, finding that a full one-third suffered from the same kind of skin lesion (Biswas, et al., 1999). 
 
-EFFECT OF BANGLESH WATER
+It is not an overstatement to say this is a crisis that dwarfs the Chernobyl incident, or really any other nuclear accident in history.
 
-EFFORTS TO COUNTER: government's mass testig (cell phone); also "Similar to other regions of Bangladesh and West Bengal, India, the distribution of arsenic in Araihazar is spatially highly variable (range: 5*860 mg/l) and therefore difficult to predict. Because of this variability, however, close to 90% of the inhabitants live within 100 m of a safe well. " (from first article)
+There is one bright side, however. A study in the Araihazar upazila district found that the distribution of arsenic in groundwater is 'spatially highly variable.' This means it is not the case that excessive arsenic is concentrated in large regions. Instead, it is often that case that a contaminated well will be very near a safe well. Indeed, van Geen and his coauthors found about 90 percent of residents lived within 100 meters of a safe well (van Geen, et al., 2002).
 
-TWO PREVIOUS VAN NUEM ARTICLES
+This fact suggests a quick solution to Bangladesh's water problem: Find the poisoned wells and get residents to switch to a safe water supply that is likely nearby. Poisoned wells can be readily identified with cheap field kits. van Geen, et al., consider the 'real problem' to be convincing residents to switch to the safer wells. In their paper, they conclude 'social barriers to well-switching need to be better understood and, if possible, overcome.'
 
-** First article: https://www.scielosp.org/article/bwho/2002.v80n9/732-737/ **
+Researchers set about doing just that. Schoenfeld (2005) likewise confirmed that well switching was influenced by 'less predictable factors,' that interacted with physical variables (distance to nearest safe well, etc.). Social barriers could influence residents to not switch, even after being informed of the health risk of arsenic poisoning. On the other hand, a village 'arsenic activist' could persaude even those far from a safe well to switch.
 
-** Second article: https://www.ldeo.columbia.edu/~avangeen/publications/documents/Madajewicz_JDE_inpress.pdf **
-
-https://www.who.int/bulletin/archives/78%289%291093.pdf -- nature 1998
-
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3754452/
-
-https://www.nature.com/articles/26387
-
-https://www.scielosp.org/scielo.php?pid=S0042-96862003000900005&script=sci_arttext&tlng=en
-
-https://www.scielosp.org/scielo.php?pid=S0042-96862012001100013&script=sci_arttext&tlng=pt
-
-https://www.bmj.com/content/342/bmj.d2431.full
-
-
+Another study (Opar, et al., 2007) of the effect of information on well switching determined that 'the response to information is large and rapid,' provided residents were given _well-specific_ information. Mass media campaigns were found to be mostly ineffective (and too expensive), while door-to-door campaigns had a positive effect.
 
 
 
 # Methodology
 
-We propose to investigate this hypothesis using the dataset from van Green, et al. A sample of its contents should familiarize the reader with its structure:
+Our dataset is derived from Madajewicz, et al. (2007; also avaiable for R in the `carData` package as `Wells`). We propose to investigate how social factors and distance to nearest well affect the likelihood of a household to switch from a poisoned to safe well. A sample of its contents should familiarize the reader with its structure:
 
 ```{r, echo=FALSE}
 df <- read.csv('http://www.stat.columbia.edu/~gelman/arm/examples/arsenic/wells.dat',
@@ -94,7 +80,7 @@ head(df)
 
 It contains 3020 observations.
 
-Our dependent variable is `switch`: coded as zero if the family does not switch their water source after being informed that it is poisoned, and as one if they move to a different well. We hope to predict propensity to switch using these independent variables:
+Our dependent variable is `switch`: coded as 0 if the family does not switch their water source after being informed that it is poisoned, and as 1 if they move to a different well. We hope to predict propensity to switch using these independent variables:
 
 * `arsenic`: Hundreds of micrograms per liter of arsenic detected in a household's original well. Above 0.5 is considered unsafe.
 
@@ -114,23 +100,23 @@ We hypothesize that, theoretically speaking,
 
 * Higher `association` _increases_ households' probability of switching to safer wells.
 
-Statistical modeling is the chief activity explored in this paper. We seek to develop a robust model that elucidates the relationship between these independent variables and `switch`.
+Statistical modeling is the chief activity of this paper. We seek to develop a robust model that elucidates the relationship between these independent variables and `switch`.
 
-The dependent variable `switch` takes either `0` or `1` as its value. Thus logistic regression is the appropriate model. We strongly suspect some of these variables have interaction effects, so we will test them here.
+Logistic regression is the appropriate modeling strategy, as the dependent variable `switch` takes either `0` or `1` as its value. We strongly suspect some of these variables have interaction effects.
 
 To ensure that our model does not overfit the data, we use cross validation. Models are trained on a majority of the dataset, but a smaller portion is held back. This test set will not be examined in data exploration, or be exposed to the models at all. This allows us to compare the models' predictions for the test set with reality, providing an unbiased estimate of model performance.
 
 Of course, performance on the test set needs to be quantified. We propose using the F1 score, frequently used in classification for its ability to balance precision and recall
 
-Even though our winning model will be decided based on its F1 score on the test set, we still report and concern ourselves with the other measures of performance, on both train and test sets. These will include Nagelkerke's $R^2$, deviance based psuedo-$R^2$, and AIC.
+Even though our winning model will be decided based on its F1 score on the test set, we still report and concern ourselves with the other measures of performance, on both train and test sets. These will include Nagelkerke's $R^2$, deviance based psuedo-$R^2$, and precision/recall.
 
 During the modeling process, we take care to conduct a thorough analysis of the errors, or _residuals_. Residuals can be tricky with logistic regression, so we propose three alternative methods of diagnostics: 
 
-1. _Hosmer-Lemeshow test_: Available in the `ResourceSelection` package (the `hoslem.test` function), this test bins the sample into $g$ groups, and compares the expected and observed proportion of successes in each bin. For a well-fit model, the expected and observed proportions of success will be about the same, for each bin.
+1. _Hosmer-Lemeshow test_: Available in the `ResourceSelection` package (the `hoslem.test` function), this test bins the sample into $g$ groups, and compares the expected and observed proportion of successes in each bin. For a well-fit model, the expected and observed proportions of success will be about equal for each bin.
 
 2. _Binned residuals_: Similar the the HL test, this procedure (via `performance::binned_residuals`) is based on binning residuals. From there, the idea is the same as normal regression: There should be no pattern in the residuals.
 
-3. _Quantile residuals_: Via the `statmod::qresid` package, this is an alternative to deviance and Pearson residuals specifically designed for generalized linear models (GLMs). A model's quantile residuals are statistically guaranteed to have an approximately normal shape if the model if well-fit. (It is unclear to us how useful they are with logistic regression, but they will be explored.)
+3. _Quantile residuals_: Via the `statmod::qresid` package, this is an alternative to deviance and Pearson residuals specifically designed for generalized linear models (GLMs). A model's quantile residuals are statistically guaranteed to have an approximately normal shape if the model is well-fit. (It is unclear to us how useful they are with logistic regression, but they will be explored.)
 
 Outliers and leverage will also be checked to ensure a good fit.
 
@@ -142,10 +128,20 @@ Finally, once the winning model has been ascertained, inferences and conclusions
 
 * Bill and Melinda Gates Foundation. 2012. 'Bill Gates Names Winners of the Reinvent the Toilet Challenge.' Press release. https://www.gatesfoundation.org/media-center/press-releases/2012/08/bill-gates-names-winners-of-the-reinvent-the-toilet-challenge/.
 
+* Biswas, B.K., U.K. Chowdhury, R.K. Dhar, B., et al. 1999. 'Groundwater arsenic contamination and sufferings of people in Bangladesh, a report up to January 1999.' In _International Conference, Arsenic in Bangladesh Ground Water: World’s Greatest Arsenic Calamity_, Staten Island, New York.
+
+* Dhar, Ratan Kr, Bhajan Kr Biswas, Gautam Samanta, et al. 1997. 'Groundwater arsenic calamity in Bangladesh.' _Current Science_ vol. 73, no. 1: 48--59.
+
 * Madajewicz, Malgosia, Alexander Pfaff, Alexander van Geen, et al. 2007. 'Can information alone both improve awareness and change behavior? Arsenic contamination of groundwater in Bangladesh.' _Journal of Development Economics_ vol. 84, no. 2: 731--54. Draft available from https://www.ldeo.columbia.edu/~avangeen/publications/documents/Madajewicz_JDE_inpress.pdf.
 
-* van Green, A., M. Trevisani, J. Immel, et al. 2006. 'Targeting Low-arsenic Groundwater with Mobile-phone Technology in Araihazar, Bangladesh.' _Journal of Health, Population, and Nutrition_ vol. 24, no. 3: 282--97. Available at https://www.ldeo.columbia.edu/~avangeen/publications/documents/vanGeen_JHPN_06_000.pdf.
+* Opar, Alisa, Alex Pfaff, A.A. Seddique, et al. 2007. 'Responses of 6500 households to arsenic mitigation in Araihazar, Bangladesh.' _Health & Place_ vol. 13, no. 1: 164--72.
 
-* van Green, A. 2018. 'Q&A With Lex Van Geen on Arsenic Contamination.' Interview by Peter Debaere. _UVA Darden Global Water Blog_. March 1. https://blogs.darden.virginia.edu/globalwater/2018/03/01/qa-with-lex-van-geen/.
+* Schoenfeld, Amy. 2005. 'Area, village, and household response to arsenic testing and labeling of tubewells in Araihazar, Bangladesh.' New York City: Columbia University. Available at https://www.ldeo.columbia.edu/~avangeen/arsenic/documents/Schoenfeld_MS_05.pdf.
+
+* van Geen, Alexander, Habibul Ahsan, Allan H. Horneman, et al. 2002. 'Promotion of well-switching to mitigate the current arsenic crisis in Bangladesh.' _Bulletin of the World Health Organization_ no. 80: 732-737.
+
+* van Geen, Alexander, M. Trevisani, J. Immel, et al. 2006. 'Targeting Low-arsenic Groundwater with Mobile-phone Technology in Araihazar, Bangladesh.' _Journal of Health, Population, and Nutrition_ vol. 24, no. 3: 282--97. Available at https://www.ldeo.columbia.edu/~avangeen/publications/documents/vanGeen_JHPN_06_000.pdf.
+
+* van Geen, Alexander. 2018. 'Q&A With Lex Van Geen on Arsenic Contamination.' Interview by Peter Debaere. _UVA Darden Global Water Blog_. March 1. https://blogs.darden.virginia.edu/globalwater/2018/03/01/qa-with-lex-van-geen/.
 
 * World Health Organization. 2019. 'Drinking water fact sheet.' June 14. https://www.who.int/news-room/fact-sheets/detail/drinking-water/.

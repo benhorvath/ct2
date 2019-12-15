@@ -33,10 +33,10 @@ library(corrplot)
 
 Nearly a billion people lack access to clean drinking water (World Health Organization 2019). There are many well-known solutions to this problem, but most of them are too expensive to work in the areas hardest-hit. Providing affected areas better information about their water is cheap---but how effective is it?
 
-To answer this question, we examine a dataset collected in rural Bangladesh. It marks whether a household switched wells after learning their routine well had unsafe levels of arsenic.
+To answer this question, we examine a dataset collected in rural Bangladesh (Opar, et al., 2007). It marks whether a household switched wells after learning their routine well had unsafe levels of arsenic.
 
 <!-- Key words: Select a few key words (up to five) related to your work. -->
-**Keywords:** Water contamination, Bangladesh, development economics
+**Keywords:** Water contamination, arsenic poisoning, Bangladesh, developmental economics
 
 
 # Introduction
@@ -74,7 +74,11 @@ This fact suggests a quick solution to Bangladesh's water problem: Find the pois
 
 Researchers set about doing just that. Schoenfeld (2005) likewise confirmed that well switching was influenced by 'less predictable factors,' that interacted with physical variables (distance to nearest safe well, etc.). Social barriers could influence residents to not switch, even after being informed of the health risk of arsenic poisoning. On the other hand, a village 'arsenic activist' could persuade even those far from a safe well to switch.
 
-Another study (Opar, et al., 2007) of the effect of information on well switching determined that 'the response to information is large and rapid,' provided residents were given _well-specific_ information. Mass media campaigns were found to be mostly ineffective (and too expensive), while door-to-door campaigns had a positive effect.
+Most the research just cited is primarily concerned with conducting surveys and 'simple' analysis of their results. The most statistically 'sophisticated' work in this literature is Gelman, et al. (2004), and Opar, et al. (2007).
+
+Opar and his colleagues returned to Araihazar upazila several years after initial education efforts had been conducted; the data in this present paper is the result of their studies. They examined the effects of these efforts, which included public education, directly posting arsenic poisoning test reults onto the wells themselves, and installing community wells. A Probit regression estimated the relationships between well switching and the following independent variables: water arsenic content, distance to nearest safest well, years of education, and 'easily observable proxies for income and wealth.' These variables were found to be significant, except the income and wealth-related variables. The Probit regression had a psuedo-$R^2$ of 0.29. 
+
+Although Gelman, et al. (2004) use an earlier version of this data, their primary concern seems to be using it as a demonstration of Bayesian decision analysis. The authors directly avoid parametric methods, including regression. Instead they rely on k-means clustering and _a priori_ probability models to answer: How effective is encouraging villagers to switch to alternative, non-poisoned wells? Where should new (safe) wells be located to maximize their availability? How deep should new wells be drilled? They conclude that recommendding new wells results reduces average arsenic exposure by 38 percent.
 
 
 
@@ -279,19 +283,21 @@ train$assoc <- as.factor(train$assoc)
 
 # References
 
-* Bill and Melinda Gates Foundation. 2012. 'Bill Gates Names Winners of the Reinvent the Toilet Challenge.' Press release. https://www.gatesfoundation.org/media-center/press-releases/2012/08/bill-gates-names-winners-of-the-reinvent-the-toilet-challenge/.
+* Bill and Melinda Gates Foundation. 2012. 'Bill Gates Names Winners of the Reinvent the Toilet Challenge.' Press release, August. https://www.gatesfoundation.org/media-center/press-releases/2012/08/bill-gates-names-winners-of-the-reinvent-the-toilet-challenge/.
 
 * Biswas, B.K., U.K. Chowdhury, R.K. Dhar, B., et al. 1999. 'Groundwater arsenic contamination and sufferings of people in Bangladesh, a report up to January 1999.' In _International Conference, Arsenic in Bangladesh Ground Water: World's Greatest Arsenic Calamity_, Staten Island, New York.
 
 * Dhar, Ratan Kr, Bhajan Kr Biswas, Gautam Samanta, et al. 1997. 'Groundwater arsenic calamity in Bangladesh.' _Current Science_ vol. 73, no. 1: 48--59.
 
+* Gelman, Andrew, Matilde Trevisani, Hao Lu, and Alexander van Geen. 2004. 'Direct data manipulation for local decision analysis as applied to the problem of arsenic in drinking water from tube wells in Bangladesh.' _Risk Analysis_ vol. 24, no. 6: 1597--1612. Available at https://www.ldeo.columbia.edu/~avangeen/pdf/Gelman_RiskAnal04.pdf.
+
 * Madajewicz, Malgosia, Alexander Pfaff, Alexander van Geen, et al. 2007. 'Can information alone both improve awareness and change behavior? Arsenic contamination of groundwater in Bangladesh.' _Journal of Development Economics_ vol. 84, no. 2: 731--54. Draft available from https://www.ldeo.columbia.edu/~avangeen/publications/documents/Madajewicz_JDE_inpress.pdf.
 
-* Opar, Alisa, Alex Pfaff, A.A. Seddique, et al. 2007. 'Responses of 6500 households to arsenic mitigation in Araihazar, Bangladesh.' _Health & Place_ vol. 13, no. 1: 164--72.
+* Opar, Alisa, Alex Pfaff, A.A. Seddique, et al. 2007. 'Responses of 6500 households to arsenic mitigation in Araihazar, Bangladesh.' _Health & Place_ vol. 13, no. 1: 164--72. Availab at http://www.academia.edu/download/45587532/Responses_of_6500_households_to_arsenic_20160512-23903-h8dy3v.pdf.
 
 * Schoenfeld, Amy. 2005. 'Area, village, and household response to arsenic testing and labeling of tubewells in Araihazar, Bangladesh.' New York City: Columbia University. Available at https://www.ldeo.columbia.edu/~avangeen/arsenic/documents/Schoenfeld_MS_05.pdf.
 
-* van Geen, Alexander, Habibul Ahsan, Allan H. Horneman, et al. 2002. 'Promotion of well-switching to mitigate the current arsenic crisis in Bangladesh.' _Bulletin of the World Health Organization_ no. 80: 732-737.
+* van Geen, Alexander, Habibul Ahsan, Allan H. Horneman, et al. 2002. 'Promotion of well-switching to mitigate the current arsenic crisis in Bangladesh.' _Bulletin of the World Health Organization_ no. 80: 732-737. Available at https://www.ldeo.columbia.edu/~avangeen/pdf/vanGeen_WHO_02.pdf.
 
 * van Geen, Alexander, M. Trevisani, J. Immel, et al. 2006. 'Targeting Low-arsenic Groundwater with Mobile-phone Technology in Araihazar, Bangladesh.' _Journal of Health, Population, and Nutrition_ vol. 24, no. 3: 282--97. Available at https://www.ldeo.columbia.edu/~avangeen/publications/documents/vanGeen_JHPN_06_000.pdf.
 

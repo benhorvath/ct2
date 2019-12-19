@@ -1,0 +1,49 @@
+---
+title: "Final Project: Switching Wells in Rural Bangladesh"
+author: "Critical Thinking Group 2"
+date: "December 20, 2019"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+
+
+## Statement of Theoretical Problem
+
+* Brief description of the troubles with Bangladesh
+
+
+
+## Data
+
+* Brief description of how data was collected and what it contains
+
+
+
+## Exploratory stuff
+
+
+
+## Models
+
+* Brief description of modeling
+
+
+
+## Inference
+
+
+
+## Conclusion
+
+
+
+## References
+
+
+
